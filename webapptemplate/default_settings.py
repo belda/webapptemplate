@@ -25,10 +25,10 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     # Framework apps
-    "apps.accounts",
-    "apps.workspaces",
-    "apps.api",
-    "apps.dashboard",
+    "webapptemplate.apps.accounts",
+    "webapptemplate.apps.workspaces",
+    "webapptemplate.apps.api",
+    "webapptemplate.apps.dashboard",
 ]
 
 MIDDLEWARE = [
@@ -38,11 +38,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "apps.accounts.middleware.EmailVerificationMiddleware",
+    "webapptemplate.apps.accounts.middleware.EmailVerificationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "apps.workspaces.middleware.CurrentWorkspaceMiddleware",
+    "webapptemplate.apps.workspaces.middleware.CurrentWorkspaceMiddleware",
 ]
 
 TEMPLATES = [
@@ -56,7 +56,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "apps.workspaces.context_processors.workspace_context",
+                "webapptemplate.apps.workspaces.context_processors.workspace_context",
             ],
         },
     },
@@ -100,8 +100,8 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 # REQUIRE_EMAIL_VERIFICATION is True.
 ACCOUNT_EMAIL_VERIFICATION = "optional"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
-SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
+ACCOUNT_ADAPTER = "webapptemplate.apps.accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "webapptemplate.apps.accounts.adapters.SocialAccountAdapter"
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
@@ -130,7 +130,7 @@ REQUIRE_EMAIL_VERIFICATION = True
 
 # When True, any workspace member can invite new people (not just admins/owners).
 # When False (default), only admins and owners can send invitations.
-WORKSPACE_MEMBERS_CAN_INVITE = True
+WORKSPACE_MEMBERS_CAN_INVITE = False
 
 # When True, the REST API (/api/v1/) is reachable and workspace API key management
 # is shown in workspace settings. Set to False to disable the API entirely.

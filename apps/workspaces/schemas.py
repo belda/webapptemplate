@@ -2,7 +2,7 @@ from ninja import Schema
 from datetime import datetime
 from typing import Optional
 
-from apps.accounts.schemas import UserSchema
+from webapptemplate.apps.accounts.schemas import UserSchema
 
 
 class WorkspaceSchema(Schema):

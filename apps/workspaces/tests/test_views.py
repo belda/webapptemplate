@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from allauth.account.models import EmailAddress
 
-from apps.workspaces.models import Workspace, Membership, Invitation
+from webapptemplate.apps.workspaces.models import Workspace, Membership, Invitation
 
 User = get_user_model()
 
@@ -545,21 +545,21 @@ class APIKeyCreateTest(TestCase):
         self.assertRedirects(
             response, "/workspaces/settings/", fetch_redirect_response=False
         )
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         self.assertTrue(
             APIKey.objects.filter(workspace=self.workspace, name="My Key").exists()
         )
 
     def test_create_stores_hash_not_raw_key(self):
         self.client.post("/workspaces/api-keys/create/", {"name": "Hash Check"})
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         key = APIKey.objects.get(workspace=self.workspace, name="Hash Check")
         self.assertFalse(key.key_hash.startswith("sk_"))
         self.assertEqual(len(key.key_hash), 64)  # SHA-256 hex digest
 
     def test_create_sets_prefix(self):
         self.client.post("/workspaces/api-keys/create/", {"name": "Prefix Check"})
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         key = APIKey.objects.get(workspace=self.workspace, name="Prefix Check")
         self.assertTrue(key.key_prefix.startswith("sk_"))
 
@@ -573,7 +573,7 @@ class APIKeyCreateTest(TestCase):
         self.client.force_login(member)
 
         self.client.post("/workspaces/api-keys/create/", {"name": "Sneaky Key"})
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         self.assertFalse(
             APIKey.objects.filter(workspace=self.workspace, name="Sneaky Key").exists()
         )
@@ -592,7 +592,7 @@ class APIKeyCreateTest(TestCase):
 @override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
 class APIKeyRenameTest(TestCase):
     def setUp(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         self.owner = _make_user("apikeyrenameowner@example.com")
         self.workspace = _make_workspace(self.owner, "APIKey Rename WS")
         _, prefix, key_hash = APIKey.generate()
@@ -638,7 +638,7 @@ class APIKeyRenameTest(TestCase):
         self.assertNotEqual(self.api_key.name, "Hijacked")
 
     def test_idor_cannot_rename_key_from_another_workspace(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         other_owner = _make_user("apirenameother@example.com")
         other_ws = other_owner.current_workspace
         _, prefix, key_hash = APIKey.generate()
@@ -664,7 +664,7 @@ class APIKeyRenameTest(TestCase):
 @override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
 class APIKeyDeleteTest(TestCase):
     def setUp(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         self.owner = _make_user("apikeydeletowner@example.com")
         self.workspace = _make_workspace(self.owner, "APIKey Delete WS")
         _, prefix, key_hash = APIKey.generate()
@@ -684,7 +684,7 @@ class APIKeyDeleteTest(TestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_admin_can_revoke_api_key(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         response = self.client.post(
             f"/workspaces/api-keys/{self.api_key.id}/delete/"
         )
@@ -694,7 +694,7 @@ class APIKeyDeleteTest(TestCase):
         self.assertFalse(APIKey.objects.filter(id=self.api_key.id).exists())
 
     def test_member_cannot_revoke_api_key(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         member = _make_user("apikeyrevmember@example.com")
         Membership.objects.create(
             user=member, workspace=self.workspace, role=Membership.ROLE_MEMBER
@@ -707,7 +707,7 @@ class APIKeyDeleteTest(TestCase):
         self.assertTrue(APIKey.objects.filter(id=self.api_key.id).exists())
 
     def test_idor_cannot_revoke_key_from_another_workspace(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         other_owner = _make_user("apideleteother@example.com")
         other_ws = other_owner.current_workspace
         _, prefix, key_hash = APIKey.generate()

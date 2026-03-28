@@ -3,8 +3,8 @@ from django.apps import AppConfig
 
 class WorkspacesConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.workspaces"
+    name = "webapptemplate.apps.workspaces"
     label = "workspaces"
 
     def ready(self):
-        import apps.workspaces.signals  # noqa
+        import webapptemplate.apps.workspaces.signals  # noqa

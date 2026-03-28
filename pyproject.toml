@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
-    "Django==6.0.4",
+    "Django==6.0.3",
     "django-allauth[socialaccount]==65.15.0",
     "django-ninja==1.6.2",
     "whitenoise==6.12.0",
@@ -22,20 +22,18 @@ dependencies = [
     "django-redis==6.0.0",
 ]
 
+[project.scripts]
+webapptemplate = "webapptemplate.installer.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/your-org/webapptemplate"
 Repository = "https://github.com/your-org/webapptemplate"
 
 [tool.hatch.build.targets.wheel]
-packages = ["apps", "webapptemplate"]
-
-[tool.hatch.build.targets.wheel.shared-data]
-"templates" = "webapptemplate/templates"
-"static" = "webapptemplate/static"
+packages = ["webapptemplate"]
 
 [tool.hatch.build]
 include = [
-    "apps/**",
     "webapptemplate/**",
     "templates/**",
     "static/**",

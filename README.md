@@ -1,110 +1,196 @@
 # WebApp Template
 
-A reusable Django starter with:
-- **Google OAuth + email/password auth** via `django-allauth`
-- **Workspaces** — create, switch, invite teammates
-- **HTMX** frontend with Tailwind CSS + Alpine.js
-- **Django Ninja** REST API (`/api/v1/`)
-- **Docker** ready (Postgres + Redis)
+A reusable Django starter kit distributed as an installable Python package. Scaffold a new
+production-ready Django project in under a minute with:
 
-## Quick start (local, SQLite)
+- **Google OAuth + email/password auth** via `django-allauth`
+- **Workspaces** — multi-tenant, with roles, invitations, and API keys
+- **HTMX + Alpine.js + Tailwind CSS** — no build step required
+- **Django Ninja** REST API at `/api/v1/`
+- **Docker** ready — Postgres + Redis, separate dev and prod configs
+
+---
+
+## Creating a new project
+
+Install the CLI (requires Python 3.11+):
 
 ```bash
-# 1. Create virtualenv and install deps
-python3 -m venv .venv && source .venv/bin/activate
+pip install /path/to/webapptemplate   # local checkout; or: pip install webapptemplate (once on PyPI)
+```
+
+Scaffold a new project:
+
+```bash
+cd ~/Projects
+webapptemplate init
+```
+
+The wizard prompts for project name, database (PostgreSQL or SQLite), Redis, production domain,
+admin email, and whether to generate Docker files. A `SECRET_KEY` is auto-generated and written
+to `.env`.
+
+Then set up the generated project:
+
+```bash
+cd myproject
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# 2. Copy env and configure
-cp .env.example .env        # edit GOOGLE_CLIENT_ID / SECRET at minimum
-
-# 3. Run migrations and create superuser
 python manage.py migrate
 python manage.py createsuperuser
-
-# 4. Start dev server
 python manage.py runserver
 ```
 
 Visit http://localhost:8000 — you'll be redirected to the login page.
 
-## Docker (recommended for production-like setup)
+### Run with Docker
 
 ```bash
-cp .env.example .env        # fill in secrets
+cp .env.example .env     # set DB_PASSWORD and any other secrets
 
-# Dev (code hot-reloaded, SQLite skipped, uses Postgres):
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# Production:
+# Production-like (Postgres + Gunicorn):
 docker compose up --build
+
+# Development (hot-reload, Postgres):
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
-## Google OAuth setup
+---
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
-2. Create an **OAuth 2.0 Client ID** (Web application)
-3. Add Authorized redirect URI: `http://localhost:8000/accounts/google/login/callback/`
-4. Copy Client ID and Secret into `.env`
-5. In Django admin → Sites → change `example.com` to `localhost:8000`
-6. In Django admin → Social Applications → add Google app with your credentials
+## How it works
 
-## Project structure
+The `webapptemplate` package contains both the core Django framework and the `webapptemplate init` CLI wizard.
+
+A scaffolded project depends only on `webapptemplate`. Its settings inherit via:
 
 ```
-config/          Django settings (base / development / production)
-apps/
-  accounts/      Custom User model, profile settings, allauth adapters
-    api.py       /api/v1/accounts/ endpoints
-    schemas.py   Pydantic schemas for accounts
-    templates/   Auth + profile templates (account/, accounts/)
-  workspaces/    Workspace, Membership, Invitation, APIKey models + views
-    api.py       /api/v1/workspaces/ endpoints
-    api_auth.py  APIKeyAuth Bearer class
-    schemas.py   Pydantic schemas for workspaces
-    templates/   Workspace templates + HTMX partials
-  dashboard/     Home redirect + dashboard view
-    templates/   dashboard.html (extend this per project)
-  api/v1/        Central API router — imports from app packages
-templates/
-  base.html      HTML shell
-  landing.html   Public landing page
-  layouts/       app.html (sidebar), auth.html
-  components/    sidebar, workspace switcher, messages
+config/settings/production.py  (or development.py)
+    └── config/settings/base.py
+            └── from webapptemplate.default_settings import *
 ```
 
-## Extending for a new project
+Framework updates are applied by bumping the `webapptemplate` version in `requirements.txt` and
+running `pip install -r requirements.txt` — no need to touch project config.
 
-1. Add nav items in `templates/components/sidebar.html`
-2. Add a new Django app under `apps/` with its own `api.py`, `schemas.py`, and `templates/`
-3. Register it in `config/settings/base.py → INSTALLED_APPS`
-4. Add API routers to `apps/api/v1/router.py`
+---
+
+## Extending a scaffolded project
+
+### Add a Django app
+
+```bash
+python manage.py startapp blog apps/blog
+```
+
+Register it in `config/settings/base.py`:
+
+```python
+INSTALLED_APPS += ["apps.blog"]
+```
+
+### Add a nav item
+
+Edit `templates/components/sidebar.html`:
+
+```html
+{% include "components/nav_item.html" with url="blog:index" label="Blog" icon="home" %}
+```
+
+Supported icons: `home`, `building`, `cog`. Add more by editing `components/nav_item.html`
+with any [Font Awesome 6 Free](https://fontawesome.com/icons) icon name.
+
+### Add an API endpoint
+
+1. Create `apps/blog/api.py` with a `Router()`
+2. Add schemas to `apps/blog/schemas.py` (or `apps/api/v1/schemas.py`)
+3. Register in `config/urls.py` (or `apps/api/v1/router.py` if using the shared router):
+   ```python
+   from apps.blog.api import router as blog_router
+   api.add_router("/blog/", blog_router)
+   ```
+
+### Override a template
+
+Drop a file in your project's `templates/` directory with the same path as the framework
+template. Project templates take precedence:
+
+```
+templates/dashboard.html          # overrides the default dashboard
+templates/components/sidebar.html # overrides the sidebar
+```
+
+### Workspace-aware views
+
+```python
+from webapptemplate.apps.workspaces.decorators import workspace_member_required, workspace_admin_required
+
+@workspace_member_required
+def my_view(request):
+    workspace = request.workspace   # guaranteed non-None
+```
+
+---
+
+## Project structure (scaffolded)
+
+```
+myproject/
+  manage.py
+  config/
+    settings/
+      base.py          Shared settings — extend webapptemplate defaults here
+      development.py   DEBUG=True, console email backend
+      production.py    SSL/HSTS/secure cookies
+    urls.py            Extends webapptemplate.urls; add project-specific routes here
+    wsgi.py / asgi.py
+  apps/                Your project-specific Django apps go here
+  templates/           Project templates (take precedence over framework templates)
+  static/              Project static files
+  .env                 Secrets — never commit this
+  .env.example         Committed placeholder for .env
+  requirements.txt     Pinned to webapptemplate==<version>
+  Dockerfile
+  docker-compose.yml
+  docker-compose.dev.yml
+```
+
+Framework apps (accounts, workspaces, dashboard, API) live inside the installed
+`webapptemplate` package at `webapptemplate/apps/` and are imported as
+`webapptemplate.apps.accounts`, etc.
+
+---
 
 ## Configuration reference
 
-All custom settings live in `config/settings/base.py` and can be overridden per environment or via `.env`.
+Set these in `config/settings/base.py` (or via `.env` where noted).
 
 | Setting | Default | Description |
-|---------|---------|-------------|
-| `REQUIRE_EMAIL_VERIFICATION` | `True` | When `True`, email/password users must confirm their address before accessing the app. Social logins (Google) and invitation acceptors bypass this. Set to `False` to disable. |
-| `WORKSPACE_MEMBERS_CAN_INVITE` | `True` | When `True`, any workspace member can send invitations. When `False`, only admins and owners can. |
-| `USE_API` | `True` | When `True`, the REST API at `/api/v1/` is reachable and API key management appears in workspace settings. Set to `False` to disable the API entirely. |
+|---|---|---|
+| `REQUIRE_EMAIL_VERIFICATION` | `True` | Blocks email/password users until they confirm their address. Social logins and invitation acceptors are exempt. |
+| `WORKSPACE_MEMBERS_CAN_INVITE` | `False` | When `True`, any workspace member can send invitations. Default: admins and owners only. |
+| `USE_API` | `True` | Enables the REST API at `/api/v1/` and API key management in workspace settings. |
 
 ### Google OAuth
 
-Set these in `.env` (or environment):
-
-```
+```bash
+# .env
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-Then in Django admin: update the **Site** to match your domain, and add a **Social Application** for Google.
+Then in Django admin:
+1. **Sites** → change `example.com` to your domain (e.g. `localhost:8000` in dev)
+2. **Social Applications** → add a Google app with your credentials and assign it to the site
+
+Add authorized redirect URI in [Google Cloud Console](https://console.cloud.google.com/):
+`https://yourdomain.com/accounts/google/login/callback/`
 
 ### Email
 
-By default `EMAIL_BACKEND` is `console` (prints to terminal). For production, configure SMTP via `.env`:
+Development uses the `console` backend — emails print to the terminal. For production:
 
-```
+```bash
+# .env
 EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
@@ -114,16 +200,49 @@ EMAIL_HOST_PASSWORD=secret
 DEFAULT_FROM_EMAIL=noreply@example.com
 ```
 
+---
+
+## Developing the template itself
+
+To work on `webapptemplate` directly (not on a scaffolded project):
+
+```bash
+git clone <repo>
+cd webapptemplate
+
+pyenv exec python -m venv .venv
+source .venv/bin/activate.fish   # or activate for bash/zsh
+pip install -r requirements.txt
+
+DJANGO_SETTINGS_MODULE=config.settings.development python manage.py runserver
+```
+
+Run checks and tests:
+
+```bash
+DJANGO_SETTINGS_MODULE=config.settings.development python manage.py check
+DJANGO_SETTINGS_MODULE=config.settings.development python manage.py test
+```
+
+To test the installer locally:
+
+```bash
+pip install installer/
+webapptemplate init
+```
+
+---
+
 ## Tech stack
 
-| Layer      | Library                  |
-|------------|--------------------------|
-| Framework  | Django 5.0               |
-| Auth       | django-allauth 0.62      |
-| API        | django-ninja 1.1         |
-| Frontend   | HTMX 2 + Alpine.js 3     |
-| CSS        | Tailwind CSS (CDN)       |
-| Static     | Whitenoise               |
-| Database   | PostgreSQL / SQLite (dev)|
-| Cache      | Redis (optional)         |
-| Container  | Docker + Compose         |
+| Layer | Library |
+|---|---|
+| Framework | Django 6.0.4 |
+| Auth | django-allauth 65.15 |
+| API | django-ninja 1.6.2 |
+| Frontend | HTMX 2 + Alpine.js 3 + Tailwind CSS (CDN) |
+| Static files | Whitenoise 6 |
+| Database | PostgreSQL (prod) / SQLite (dev) |
+| Cache / sessions | Redis + django-redis (optional) |
+| Container | Docker + Compose |
+| Build | Hatchling |

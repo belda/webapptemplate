@@ -1,4 +1,4 @@
-from apps.workspaces.models import Membership
+from webapptemplate.apps.workspaces.models import Membership
 
 
 def workspace_context(request):

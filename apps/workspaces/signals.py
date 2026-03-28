@@ -31,7 +31,7 @@ def create_default_workspace(sender, instance, created, **kwargs):
     if getattr(_registration_local, "skip_workspace", False):
         return
 
-    from apps.workspaces.models import Workspace, Membership
+    from webapptemplate.apps.workspaces.models import Workspace, Membership
 
     workspace_name = getattr(_registration_local, "workspace_name", None)
     if not workspace_name:
@@ -61,7 +61,7 @@ def verify_email_on_invite_signup(sender, request, user, **kwargs):
     if not token:
         return
 
-    from apps.workspaces.models import Invitation
+    from webapptemplate.apps.workspaces.models import Invitation
     try:
         invitation = Invitation.objects.get(token=token, accepted_at__isnull=True, email=user.email)
     except Invitation.DoesNotExist:

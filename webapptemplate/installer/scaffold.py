@@ -8,7 +8,7 @@ import secrets
 from pathlib import Path
 
 import webapptemplate
-from webapptemplate_installer import templates as tmpl
+from webapptemplate.installer import templates as tmpl
 
 
 def prompt(question, default=None, choices=None):
