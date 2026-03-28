@@ -1,0 +1,37 @@
+{% extends "layouts/auth.html" %}
+
+{% block auth_title %}Check your email{% endblock %}
+
+{% block auth_subtitle %}
+  We sent a confirmation link to <strong>{{ email }}</strong>
+{% endblock %}
+
+{% block auth_content %}
+<div class="text-center">
+  <div class="flex justify-center mb-6">
+    <div class="h-16 w-16 rounded-full bg-primary-50 flex items-center justify-center">
+      <i class="fa-solid fa-envelope text-primary-600 text-2xl"></i>
+    </div>
+  </div>
+
+  <p class="text-sm text-gray-600 mb-8">
+    Click the link in the email to activate your account. If you don't see it,
+    check your spam or junk folder.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn-primary w-full">
+      Resend verification email
+    </button>
+  </form>
+
+  <p class="mt-6 text-sm text-gray-500">
+    Wrong address?
+    <a href="{% url 'account_logout' %}" class="font-medium text-primary-600 hover:text-primary-500">
+      Sign out
+    </a>
+    and register again with the correct email.
+  </p>
+</div>
+{% endblock %}
