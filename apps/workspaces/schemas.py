@@ -2,13 +2,7 @@ from ninja import Schema
 from datetime import datetime
 from typing import Optional
 
-
-class UserSchema(Schema):
-    id: int
-    email: str
-    first_name: str
-    last_name: str
-    display_name: str
+from apps.accounts.schemas import UserSchema
 
 
 class WorkspaceSchema(Schema):

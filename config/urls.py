@@ -8,7 +8,7 @@ urlpatterns = [
     path("accounts/", include("apps.accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("workspaces/", include("apps.workspaces.urls")),
-    path("", include("apps.accounts.dashboard_urls")),
+    path("", include("apps.dashboard.urls")),
 ]
 
 if getattr(settings, "USE_API", False):

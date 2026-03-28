@@ -10,17 +10,6 @@ from allauth.account.internal.flows.email_verification import send_verification_
 from .forms import ProfileForm
 
 
-def home(request):
-    if request.user.is_authenticated:
-        return redirect("dashboard")
-    return render(request, "landing.html")
-
-
-@login_required
-def dashboard(request):
-    return render(request, "dashboard.html")
-
-
 @login_required
 def verification_pending(request):
     """

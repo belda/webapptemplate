@@ -6,7 +6,7 @@ from ninja.security import HttpBearer
 
 class APIKeyAuth(HttpBearer):
     def authenticate(self, request, token):
-        from apps.workspaces.models import APIKey
+        from .models import APIKey
 
         key_hash = hashlib.sha256(token.encode()).hexdigest()
         try:

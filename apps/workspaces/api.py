@@ -2,8 +2,8 @@ from typing import List
 from ninja import Router
 from django.shortcuts import get_object_or_404
 
-from apps.workspaces.models import Workspace, Membership, Invitation
-from .schemas import WorkspaceSchema, MembershipSchema, InvitationSchema, WorkspaceCreateSchema, InviteSchema
+from .models import Workspace, Membership, Invitation
+from .schemas import WorkspaceSchema, MembershipSchema, InvitationSchema, WorkspaceCreateSchema
 
 router = Router(tags=["Workspaces"])
 

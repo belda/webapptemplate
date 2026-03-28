@@ -54,21 +54,65 @@ docker compose up --build
 config/          Django settings (base / development / production)
 apps/
   accounts/      Custom User model, profile settings, allauth adapters
-  workspaces/    Workspace, Membership, Invitation models + views
-  api/v1/        Django Ninja REST API
+    api.py       /api/v1/accounts/ endpoints
+    schemas.py   Pydantic schemas for accounts
+    templates/   Auth + profile templates (account/, accounts/)
+  workspaces/    Workspace, Membership, Invitation, APIKey models + views
+    api.py       /api/v1/workspaces/ endpoints
+    api_auth.py  APIKeyAuth Bearer class
+    schemas.py   Pydantic schemas for workspaces
+    templates/   Workspace templates + HTMX partials
+  dashboard/     Home redirect + dashboard view
+    templates/   dashboard.html (extend this per project)
+  api/v1/        Central API router — imports from app packages
 templates/
-  layouts/       base.html, app.html (sidebar), auth.html
+  base.html      HTML shell
+  landing.html   Public landing page
+  layouts/       app.html (sidebar), auth.html
   components/    sidebar, workspace switcher, messages
-  account/       allauth overrides (login, signup, logout)
-  workspaces/    workspace CRUD + HTMX partials
 ```
 
 ## Extending for a new project
 
 1. Add nav items in `templates/components/sidebar.html`
-2. Add a new Django app under `apps/`
+2. Add a new Django app under `apps/` with its own `api.py`, `schemas.py`, and `templates/`
 3. Register it in `config/settings/base.py → INSTALLED_APPS`
 4. Add API routers to `apps/api/v1/router.py`
+
+## Configuration reference
+
+All custom settings live in `config/settings/base.py` and can be overridden per environment or via `.env`.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `REQUIRE_EMAIL_VERIFICATION` | `True` | When `True`, email/password users must confirm their address before accessing the app. Social logins (Google) and invitation acceptors bypass this. Set to `False` to disable. |
+| `WORKSPACE_MEMBERS_CAN_INVITE` | `True` | When `True`, any workspace member can send invitations. When `False`, only admins and owners can. |
+| `USE_API` | `True` | When `True`, the REST API at `/api/v1/` is reachable and API key management appears in workspace settings. Set to `False` to disable the API entirely. |
+
+### Google OAuth
+
+Set these in `.env` (or environment):
+
+```
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+Then in Django admin: update the **Site** to match your domain, and add a **Social Application** for Google.
+
+### Email
+
+By default `EMAIL_BACKEND` is `console` (prints to terminal). For production, configure SMTP via `.env`:
+
+```
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=you@example.com
+EMAIL_HOST_PASSWORD=secret
+DEFAULT_FROM_EMAIL=noreply@example.com
+```
 
 ## Tech stack
 

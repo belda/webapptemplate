@@ -278,7 +278,7 @@ class APIKeyBearerAuthTest(TestCase):
     def test_valid_key_authenticate_returns_api_key(self):
         """APIKeyAuth.authenticate should return the APIKey object for a valid token."""
         from unittest.mock import MagicMock
-        from apps.api.v1.auth import APIKeyAuth
+        from apps.workspaces.api_auth import APIKeyAuth
         result = APIKeyAuth().authenticate(MagicMock(), self.raw_key)
         self.assertEqual(result, self.api_key)
 
@@ -296,7 +296,7 @@ class APIKeyBearerAuthTest(TestCase):
     def test_last_used_at_is_updated_on_authenticate(self):
         """last_used_at is stamped in APIKeyAuth.authenticate, before the endpoint runs."""
         from unittest.mock import MagicMock
-        from apps.api.v1.auth import APIKeyAuth
+        from apps.workspaces.api_auth import APIKeyAuth
         self.assertIsNone(self.api_key.last_used_at)
         APIKeyAuth().authenticate(MagicMock(), self.raw_key)
         self.api_key.refresh_from_db()
@@ -312,6 +312,6 @@ class APIKeyBearerAuthTest(TestCase):
 
     def test_invalid_key_authenticate_returns_none(self):
         from unittest.mock import MagicMock
-        from apps.api.v1.auth import APIKeyAuth
+        from apps.workspaces.api_auth import APIKeyAuth
         result = APIKeyAuth().authenticate(MagicMock(), "sk_notavalidkey")
         self.assertIsNone(result)
