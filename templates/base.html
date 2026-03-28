@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}WebApp{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
+  <script>
+    // Configure Tailwind
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    [x-cloak] { display: none !important; }
+    .input {
+      @apply block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300
+             placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6;
+    }
+    .btn-primary {
+      @apply inline-flex justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold
+             text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2
+             focus-visible:outline-offset-2 focus-visible:outline-primary-600;
+    }
+    .btn-secondary {
+      @apply inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold
+             text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50;
+    }
+    .btn-danger {
+      @apply inline-flex justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold
+             text-white shadow-sm hover:bg-red-500;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full">
+  {% block body %}{% endblock %}
+</body>
+</html>

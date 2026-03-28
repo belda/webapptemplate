@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Create Workspace{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Create a new workspace</h1>
+    <p class="mt-1 text-sm text-gray-500">Workspaces let you collaborate with your team.</p>
+  </div>
+
+  <div class="bg-white shadow-sm ring-1 ring-gray-200 rounded-lg p-6">
+    <form method="post">
+      {% csrf_token %}
+      <div>
+        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+          Workspace name
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.name.errors.0 }}</p>
+        {% endif %}
+      </div>
+      <div class="mt-6 flex gap-x-3 justify-end">
+        <a href="{% url 'dashboard' %}" class="btn-secondary">Cancel</a>
+        <button type="submit" class="btn-primary">Create workspace</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

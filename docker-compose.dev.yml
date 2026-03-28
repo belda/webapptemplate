@@ -1,0 +1,29 @@
+version: "3.9"
+
+# Development override — mounts code for hot reload
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DB_HOST: db
+      DB_NAME: webapptemplate
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    volumes:
+      - .:/app
+      - media_files:/app/media
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000

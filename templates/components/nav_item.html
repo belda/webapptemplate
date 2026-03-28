@@ -1,0 +1,18 @@
+{% load static %}
+{% url url as nav_url %}
+<li>
+  <a href="{{ nav_url }}"
+     class="group flex items-center rounded-md p-2 text-sm font-semibold leading-6
+            {% if request.path == nav_url %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}"
+     :class="sidebarCollapsed ? 'justify-center' : 'gap-x-3'"
+     title="{{ label }}">
+    {% if icon == "home" %}
+    <i class="fa-solid fa-house fa-xl fa-fw shrink-0"></i>
+    {% elif icon == "building" %}
+    <i class="fa-solid fa-building fa-xl fa-fw shrink-0"></i>
+    {% elif icon == "cog" %}
+    <i class="fa-solid fa-gear fa-xl fa-fw shrink-0"></i>
+    {% endif %}
+    <span x-show="!sidebarCollapsed" x-cloak>{{ label }}</span>
+  </a>
+</li>

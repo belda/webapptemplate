@@ -1,0 +1,25 @@
+<div id="pending-invites">
+  {% if pending_invitations %}
+  <ul role="list" class="divide-y divide-gray-100">
+    {% for inv in pending_invitations %}
+    <li class="flex items-center gap-x-4 p-4">
+      <div class="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center text-sm text-gray-500 shrink-0">
+        @
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-900 truncate">{{ inv.email }}</p>
+        <p class="text-xs text-gray-500">Invited {{ inv.created_at|timesince }} ago</p>
+      </div>
+      <button hx-post="{% url 'cancel_invitation' inv.id %}"
+              hx-target="#pending-invites"
+              hx-swap="outerHTML"
+              class="text-xs text-red-600 hover:text-red-800">
+        Cancel
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="p-6 text-sm text-gray-500">No pending invitations.</p>
+  {% endif %}
+</div>

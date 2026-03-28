@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: webapptemplate
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DB_HOST: db
+      DB_NAME: webapptemplate
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - media_files:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_files:

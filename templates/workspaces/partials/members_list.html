@@ -1,0 +1,80 @@
+<div x-data="{
+  open: false,
+  modalTitle: '',
+  modalMsg: '',
+  modalAction: '',
+  modalBtnLabel: '',
+  modalBtnClass: '',
+  csrfToken: '{{ csrf_token }}',
+  show(title, msg, action, btnLabel, btnClass) {
+    this.modalTitle = title;
+    this.modalMsg = msg;
+    this.modalAction = action;
+    this.modalBtnLabel = btnLabel;
+    this.modalBtnClass = btnClass;
+    this.open = true;
+  },
+  confirm() {
+    htmx.ajax('POST', this.modalAction, {
+      target: '#members-list',
+      swap: 'innerHTML',
+      values: {csrfmiddlewaretoken: this.csrfToken}
+    });
+    this.open = false;
+  }
+}" @keydown.escape.window="open = false">
+
+<ul role="list" class="divide-y divide-gray-100">
+  {% for m in members %}
+  <li class="flex items-center gap-x-4 p-4">
+    {% if m.user.avatar %}
+    <img src="{{ m.user.avatar }}" class="h-9 w-9 rounded-full" alt="">
+    {% else %}
+    <div class="h-9 w-9 rounded-full bg-primary-100 flex items-center justify-center text-xs font-semibold text-primary-700 shrink-0">
+      {{ m.user.initials }}
+    </div>
+    {% endif %}
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-medium text-gray-900 truncate">{{ m.user.display_name }}</p>
+      <p class="text-xs text-gray-500 truncate">{{ m.user.email }}</p>
+    </div>
+    {% if membership.is_owner and m.role != 'owner' and m.user != request.user %}
+    <div class="flex items-center gap-x-2 shrink-0">
+      <button type="button"
+              @click="show('Transfer Ownership', 'Transfer ownership to {{ m.user.display_name|escapejs }}? You will become a regular member.', '{% url 'transfer_ownership' m.id %}', 'Transfer', 'btn-primary')"
+              class="text-xs text-yellow-600 hover:text-yellow-800">
+        Transfer
+      </button>
+      <button type="button"
+              @click="show('Remove Member', 'Remove {{ m.user.display_name|escapejs }} from this workspace?', '{% url 'remove_member' m.id %}', 'Remove', 'btn-danger')"
+              class="text-xs text-red-600 hover:text-red-800">
+        Remove
+      </button>
+    </div>
+    {% endif %}
+    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium capitalize
+      {% if m.role == 'owner' %}bg-yellow-100 text-yellow-800
+      {% elif m.role == 'admin' %}bg-blue-100 text-blue-800
+      {% else %}bg-gray-100 text-gray-600{% endif %}">
+      {{ m.role }}
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- Confirmation modal -->
+<div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-gray-500/75 transition-opacity" @click="open = false"></div>
+    <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6" @click.stop>
+      <h3 class="text-base font-semibold text-gray-900" x-text="modalTitle"></h3>
+      <p class="mt-2 text-sm text-gray-600" x-text="modalMsg"></p>
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" @click="open = false" class="btn-secondary">Cancel</button>
+        <button type="button" @click="confirm()" :class="modalBtnClass" x-text="modalBtnLabel"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>

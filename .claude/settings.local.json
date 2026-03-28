@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py check 2>&1)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py makemigrations accounts workspaces 2>&1)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py migrate 2>&1)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python -c \"\nimport django\ndjango.setup\\(\\)\nfrom django.test import Client, override_settings\nc = Client\\(SERVER_NAME='localhost'\\)\nr = c.get\\('/accounts/login/'\\)\nprint\\('Status:', r.status_code\\)\nif r.status_code != 200:\n    print\\('Content:', r.content[:1000].decode\\(errors='replace'\\)\\)\nelse:\n    print\\('OK - page rendered successfully'\\)\n    print\\('First 200 chars:', r.content[:200].decode\\(errors='replace'\\)\\)\n\" 2>&1)",
+      "Bash(python:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python -c \"\nimport django\ndjango.setup\\(\\)\nfrom django.test import Client\nc = Client\\(SERVER_NAME='localhost'\\)\nr = c.get\\('/accounts/login/'\\)\nprint\\('Login page status:', r.status_code\\)\nr2 = c.get\\('/accounts/signup/'\\)\nprint\\('Signup page status:', r2.status_code\\)\n\" 2>&1)",
+      "Bash(python3:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py migrate --run-syncdb)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py showmigrations account 2>&1)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py migrate --check 2>&1)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py check)"
+    ]
+  }
+}

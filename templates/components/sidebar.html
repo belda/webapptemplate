@@ -1,0 +1,59 @@
+<!-- Sidebar -->
+<aside
+  :class="{
+    'translate-x-0': mobileSidebarOpen,
+    '-translate-x-full': !mobileSidebarOpen,
+    'lg:w-16': sidebarCollapsed,
+    'lg:w-64': !sidebarCollapsed
+  }"
+  class="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-gray-900
+         transition-all duration-300 ease-in-out
+         lg:relative lg:translate-x-0 lg:flex lg:shrink-0">
+
+  <!-- Header: logo + collapse toggle -->
+  <div class="flex h-16 shrink-0 items-center border-b border-gray-700 px-3"
+       :class="sidebarCollapsed ? 'lg:justify-center' : 'justify-between'">
+    <div class="flex items-center gap-x-3 min-w-0">
+      <!-- App logo icon -->
+      <div class="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center shrink-0">
+        <i class="fa-solid fa-bolt text-white"></i>
+      </div>
+      <span class="text-white font-semibold text-sm truncate"
+            x-show="!sidebarCollapsed" x-cloak>WebApp</span>
+    </div>
+
+    <!-- Collapse toggle (desktop only) -->
+    <button @click="toggleDesktop()"
+            class="hidden lg:flex items-center justify-center h-7 w-7 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0"
+            :class="sidebarCollapsed ? 'lg:mt-0' : ''"
+            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+      <!-- Chevron right (expand) when collapsed -->
+      <i x-show="sidebarCollapsed" x-cloak class="fa-solid fa-chevron-right fa-fw"></i>
+      <!-- Chevron left (collapse) when expanded -->
+      <i x-show="!sidebarCollapsed" x-cloak class="fa-solid fa-chevron-left fa-fw"></i>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex flex-1 flex-col overflow-y-auto py-3"
+       :class="sidebarCollapsed ? 'px-2' : 'px-3'">
+    <ul role="list" class="flex flex-1 flex-col gap-y-1">
+
+      <!-- Main nav items -->
+      <li>
+        <ul role="list" class="space-y-1">
+          {% include "components/nav_item.html" with url="dashboard" label="Dashboard" icon="home" %}
+          {# Add more nav items in your individual projects #}
+        </ul>
+      </li>
+
+      <!-- Bottom section (settings & logout live in the workspace switcher menu) -->
+      <li class="mt-auto"></li>
+    </ul>
+  </nav>
+
+  <!-- Workspace switcher — outside the scrollable nav to prevent horizontal scrollbar -->
+  <div class="border-t border-gray-700 px-3 py-3">
+    {% include "components/workspace_switcher.html" %}
+  </div>
+</aside>

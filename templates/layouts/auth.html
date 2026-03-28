@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="flex justify-center">
+      <div class="h-12 w-12 rounded-xl bg-primary-600 flex items-center justify-center">
+        <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+        </svg>
+      </div>
+    </div>
+    <h2 class="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+      {% block auth_title %}Sign in to your account{% endblock %}
+    </h2>
+    <p class="mt-2 text-center text-sm text-gray-600">
+      {% block auth_subtitle %}{% endblock %}
+    </p>
+  </div>
+
+  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+    <div class="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
+      {% include "components/messages.html" %}
+      {% block auth_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}

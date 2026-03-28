@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="h-full flex"
+     x-data="{
+       sidebarCollapsed: JSON.parse(localStorage.getItem('sidebarCollapsed') || 'false'),
+       mobileSidebarOpen: false,
+       toggleDesktop() {
+         this.sidebarCollapsed = !this.sidebarCollapsed;
+         localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
+       }
+     }">
+  <!-- Sidebar -->
+  {% include "components/sidebar.html" %}
+
+  <!-- Mobile overlay -->
+  <div x-show="mobileSidebarOpen"
+       @click="mobileSidebarOpen = false"
+       class="fixed inset-0 z-40 bg-gray-900/80 lg:hidden"
+       x-cloak></div>
+
+  <!-- Main content -->
+  <div class="flex flex-1 flex-col overflow-hidden min-w-0">
+    <!-- Mobile hamburger (visible only on small screens) -->
+    <div class="flex items-center gap-x-2 px-4 py-2 lg:hidden border-b border-gray-200 bg-white">
+      <button type="button"
+              class="-m-2.5 p-2.5 text-gray-700"
+              @click="mobileSidebarOpen = !mobileSidebarOpen">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Page content -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="py-8 px-4 sm:px-6 lg:px-8">
+        {% include "components/messages.html" %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

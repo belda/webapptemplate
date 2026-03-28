@@ -1,0 +1,8 @@
+{% extends "layouts/auth.html" %}
+
+{% block auth_title %}Signed out{% endblock %}
+
+{% block auth_content %}
+<p class="text-center text-gray-600 mb-6">You have been signed out successfully.</p>
+<a href="{% url 'account_login' %}" class="btn-primary w-full block text-center">Sign back in</a>
+{% endblock %}
