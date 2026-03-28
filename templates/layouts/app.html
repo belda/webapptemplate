@@ -10,22 +10,24 @@
          localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
        }
      }">
-  <!-- Sidebar -->
-  {% include "components/sidebar.html" %}
 
-  <!-- Mobile overlay -->
+  <!-- Mobile overlay (tap to close) -->
   <div x-show="mobileSidebarOpen"
        @click="mobileSidebarOpen = false"
        class="fixed inset-0 z-40 bg-gray-900/80 lg:hidden"
        x-cloak></div>
 
+  <!-- Sidebar -->
+  {% include "components/sidebar.html" %}
+
   <!-- Main content -->
   <div class="flex flex-1 flex-col overflow-hidden min-w-0">
-    <!-- Mobile hamburger (visible only on small screens) -->
+
+    <!-- Mobile topbar: hamburger to open sidebar -->
     <div class="flex items-center gap-x-2 px-4 py-2 lg:hidden border-b border-gray-200 bg-white">
       <button type="button"
               class="-m-2.5 p-2.5 text-gray-700"
-              @click="mobileSidebarOpen = !mobileSidebarOpen">
+              @click="mobileSidebarOpen = true">
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
         </svg>
@@ -39,6 +41,7 @@
         {% block content %}{% endblock %}
       </div>
     </main>
+
   </div>
 </div>
 {% endblock %}

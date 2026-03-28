@@ -121,6 +121,25 @@ templates/
 **To add HTMX partials:** create under `templates/<app>/partials/`, return them from views when
 `request.headers.get("HX-Request")` is truthy.
 
+## Mobile layout
+
+`layouts/app.html` is fully responsive. The authenticated shell has two distinct layouts:
+
+| Breakpoint | Sidebar behaviour | Topbar |
+|------------|-------------------|--------|
+| `< lg` (mobile/tablet) | Hidden by default; slides in as a fixed overlay when `mobileSidebarOpen = true` | Thin topbar with a `☰` hamburger button to open the sidebar |
+| `≥ lg` (desktop) | Always visible; collapses to icon-only (`w-16`) via the `☰` button in the sidebar header; state persisted to `localStorage` | No topbar — sidebar is always present |
+
+**Key Alpine state** (defined on the root `x-data` div in `app.html`):
+- `mobileSidebarOpen` — controls mobile drawer; `true` slides it in, `false` hides it
+- `sidebarCollapsed` — desktop icon-only mode; persisted to `localStorage`
+
+**Sidebar header `☰` button**: two separate buttons sharing the same icon — `hidden lg:flex` calls `toggleDesktop()`, `lg:hidden` sets `mobileSidebarOpen = false`. No JS breakpoint detection needed.
+
+**Mobile sidebar**: closes by tapping the dark overlay or pressing the `☰` button inside the sidebar header.
+
+**When customising the app name**: update the `<span>` in the sidebar header (`sidebar.html`) — that is the only place it lives.
+
 ## Frontend libraries (all via CDN, no build step)
 
 - **Tailwind CSS** — utility classes; configured inline in `base.html`
