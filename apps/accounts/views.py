@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from allauth.account.models import EmailAddress
-from allauth.account.utils import send_email_confirmation
+from allauth.account.internal.flows.email_verification import send_verification_email_for_user
 
 from .forms import ProfileForm
 
@@ -32,7 +32,7 @@ def verification_pending(request):
         return redirect("dashboard")
 
     if request.method == "POST":
-        send_email_confirmation(request, request.user, signup=False)
+        send_verification_email_for_user(request, request.user)
         messages.success(
             request,
             "Verification email resent — please check your inbox (and spam folder).",
@@ -41,7 +41,7 @@ def verification_pending(request):
 
     # Auto-send on first visit so the user doesn't have to click "Resend"
     if not request.session.get("verification_email_sent"):
-        send_email_confirmation(request, request.user, signup=False)
+        send_verification_email_for_user(request, request.user)
         request.session["verification_email_sent"] = True
 
     return render(
