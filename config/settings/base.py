@@ -15,16 +15,16 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    # Local (must come before allauth so our template overrides take precedence)
+    "apps.accounts",
+    "apps.workspaces",
+    "apps.api",
+    "apps.dashboard",
     # Third-party
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    # Local
-    "apps.accounts",
-    "apps.workspaces",
-    "apps.api",
-    "apps.dashboard",
 ]
 
 MIDDLEWARE = [
