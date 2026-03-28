@@ -19,16 +19,16 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    # Framework apps (must come before allauth so our template overrides take precedence)
+    "webapptemplate.apps.accounts",
+    "webapptemplate.apps.workspaces",
+    "webapptemplate.apps.api",
+    "webapptemplate.apps.dashboard",
     # Third-party
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    # Framework apps
-    "webapptemplate.apps.accounts",
-    "webapptemplate.apps.workspaces",
-    "webapptemplate.apps.api",
-    "webapptemplate.apps.dashboard",
 ]
 
 MIDDLEWARE = [
