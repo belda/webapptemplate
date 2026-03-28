@@ -18,3 +18,10 @@ class InviteForm(forms.ModelForm):
         widgets = {
             "email": forms.EmailInput(attrs={"class": "input", "placeholder": "colleague@example.com"}),
         }
+
+
+class APIKeyForm(forms.Form):
+    name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "e.g. Production webhook"}),
+    )

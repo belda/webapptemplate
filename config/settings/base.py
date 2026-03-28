@@ -127,6 +127,10 @@ REQUIRE_EMAIL_VERIFICATION = True
 # When False (default), only admins and owners can send invitations.
 WORKSPACE_MEMBERS_CAN_INVITE = True
 
+# When True, the REST API (/api/v1/) is reachable and workspace API key management
+# is shown in workspace settings. Set to False to disable the API entirely.
+USE_API = True
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {

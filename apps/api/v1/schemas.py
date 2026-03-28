@@ -38,3 +38,11 @@ class WorkspaceCreateSchema(Schema):
 
 class InviteSchema(Schema):
     email: str
+
+
+class APIKeySchema(Schema):
+    id: int
+    name: str
+    key_prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None

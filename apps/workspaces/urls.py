@@ -11,4 +11,7 @@ urlpatterns = [
     path("members/<int:membership_id>/remove/", views.remove_member, name="remove_member"),
     path("invitations/<int:invitation_id>/cancel/", views.cancel_invitation, name="cancel_invitation"),
     path("members/<int:membership_id>/transfer-ownership/", views.transfer_ownership, name="transfer_ownership"),
+    path("api-keys/create/", views.api_key_create, name="api_key_create"),
+    path("api-keys/<int:key_id>/rename/", views.api_key_rename, name="api_key_rename"),
+    path("api-keys/<int:key_id>/delete/", views.api_key_delete, name="api_key_delete"),
 ]

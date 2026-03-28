@@ -74,5 +74,30 @@
   </div>
   {% endif %}
 
+  <!-- API Keys -->
+  {% if use_api and membership.is_admin %}
+  <div class="bg-white shadow-sm ring-1 ring-gray-200 rounded-lg">
+    <div class="p-6 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">API Keys</h2>
+      <p class="text-sm text-gray-500">Keys authenticate requests to the REST API on behalf of this workspace.</p>
+    </div>
+
+    <!-- Create form -->
+    <div class="p-6 border-b border-gray-200">
+      <form hx-post="{% url 'api_key_create' %}"
+            hx-target="#api-keys-list"
+            hx-swap="outerHTML"
+            class="flex gap-x-3">
+        {% csrf_token %}
+        <div class="flex-1">{{ api_key_form.name }}</div>
+        <button type="submit" class="btn-primary shrink-0">Create key</button>
+      </form>
+    </div>
+
+    <!-- Keys list -->
+    {% include "workspaces/partials/api_keys_list.html" %}
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

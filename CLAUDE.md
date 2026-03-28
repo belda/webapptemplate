@@ -231,16 +231,19 @@ Use this as a quick reference before adding something — it may already exist.
 - [x] Invitation flow for new users — redirects to signup, preserves token, auto-joins workspace after registration
 - [x] Accepting invitation marks email as verified — no separate confirmation step needed
 - [x] `WORKSPACE_MEMBERS_CAN_INVITE` setting — controls whether members can invite (default: admins only)
-- [x] HTMX-powered partials: `members_list`, `pending_invitations`, `create_form`
+- [x] HTMX-powered partials: `members_list`, `pending_invitations`, `create_form`, `api_keys_list`
 - [x] `workspace_member_required` / `workspace_admin_required` decorators
 - [x] `CurrentWorkspaceMiddleware` — `request.workspace`
 - [x] `workspace_context` context processor — `current_workspace`, `user_workspaces` in all templates
+- [x] `APIKey` model — workspace-scoped; stores prefix + SHA-256 hash; raw key shown once on creation
+- [x] API key CRUD in workspace settings (admin-only); HTMX-powered list with inline rename
 
 ### API
-- [x] Django Ninja v1 at `/api/v1/` — session auth by default
+- [x] Django Ninja v1 at `/api/v1/` — session auth **and** Bearer token auth (API key)
 - [x] `/api/v1/accounts/` endpoints
 - [x] `/api/v1/workspaces/` endpoints
 - [x] Interactive docs at `/api/v1/docs`
+- [x] `USE_API` setting — gates `/api/v1/` URLs and API keys section in workspace settings
 
 ### Frontend
 - [x] Tailwind CSS (CDN — no build step)
@@ -270,10 +273,10 @@ These are natural extensions to this template. Check the list above before start
 may already be in place.
 
 ### High value / common needs
-- [ ] **Tests** — no test suite exists yet; add `pytest-django` + factories (`factory_boy`)
+- [x] **Tests** — Django test suite covering accounts, workspaces views, API endpoints, and API key management/auth
 - [ ] **Email verification in dev** — configure a real SMTP backend (currently uses `console` backend; emails print to terminal)
 - [ ] **Celery + Redis** — Redis is in Docker already; wire up `celery` for async tasks (emails, etc.)
-- [ ] **API token auth** — add `ninja.security.HttpBearer` token model for non-session API clients
+- [x] **API token auth** — workspace-scoped `APIKey` model; `APIKeyAuth` Bearer class in `apps/api/v1/auth.py`
 - [ ] **Role management UI** — promote/demote members between `admin` ↔ `member` in workspace settings
 - [ ] **Leave workspace** — member-initiated self-removal view
 - [ ] **Delete workspace** — owner-only; reassign or cascade-delete data

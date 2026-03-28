@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import uuid
 from datetime import timedelta
 from django.conf import settings
@@ -119,3 +121,37 @@ class Invitation(models.Model):
     @property
     def is_expired(self):
         return self.expires_at is not None and timezone.now() > self.expires_at
+
+
+class APIKey(models.Model):
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="api_keys",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="created_api_keys",
+    )
+    name = models.CharField(max_length=100)
+    key_prefix = models.CharField(max_length=12)
+    key_hash = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.key_prefix}…)"
+
+    @staticmethod
+    def generate():
+        """Generate a new key. Returns (raw_key, prefix, hash). Call once — raw key is never stored."""
+        raw = "sk_" + secrets.token_urlsafe(32)
+        prefix = raw[:12]
+        key_hash = hashlib.sha256(raw.encode()).hexdigest()
+        return raw, prefix, key_hash
+
+    @staticmethod
+    def hash_key(raw_key):
+        return hashlib.sha256(raw_key.encode()).hexdigest()

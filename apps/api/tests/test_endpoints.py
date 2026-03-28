@@ -253,3 +253,65 @@ class WorkspaceInvitationsEndpointTest(TestCase):
             f"/api/v1/workspaces/{self.workspace.slug}/invitations/"
         )
         self.assertEqual(response.status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# API key Bearer token authentication
+# ---------------------------------------------------------------------------
+
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+class APIKeyBearerAuthTest(TestCase):
+    def setUp(self):
+        from apps.workspaces.models import APIKey
+        self.owner = _make_user("bearerowner@example.com")
+        self.workspace = _make_workspace(self.owner, "Bearer WS")
+        self.raw_key, prefix, key_hash = APIKey.generate()
+        self.api_key = APIKey.objects.create(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Test Bearer Key",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+
+    def test_valid_key_authenticate_returns_api_key(self):
+        """APIKeyAuth.authenticate should return the APIKey object for a valid token."""
+        from unittest.mock import MagicMock
+        from apps.api.v1.auth import APIKeyAuth
+        result = APIKeyAuth().authenticate(MagicMock(), self.raw_key)
+        self.assertEqual(result, self.api_key)
+
+    def test_invalid_bearer_token_is_rejected(self):
+        response = self.client.get(
+            "/api/v1/workspaces/",
+            HTTP_AUTHORIZATION="Bearer sk_thisisnotavalidkey",
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_no_auth_is_rejected(self):
+        response = self.client.get("/api/v1/workspaces/")
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_last_used_at_is_updated_on_authenticate(self):
+        """last_used_at is stamped in APIKeyAuth.authenticate, before the endpoint runs."""
+        from unittest.mock import MagicMock
+        from apps.api.v1.auth import APIKeyAuth
+        self.assertIsNone(self.api_key.last_used_at)
+        APIKeyAuth().authenticate(MagicMock(), self.raw_key)
+        self.api_key.refresh_from_db()
+        self.assertIsNotNone(self.api_key.last_used_at)
+
+    def test_revoked_key_is_rejected(self):
+        self.api_key.delete()
+        response = self.client.get(
+            "/api/v1/workspaces/",
+            HTTP_AUTHORIZATION=f"Bearer {self.raw_key}",
+        )
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_invalid_key_authenticate_returns_none(self):
+        from unittest.mock import MagicMock
+        from apps.api.v1.auth import APIKeyAuth
+        result = APIKeyAuth().authenticate(MagicMock(), "sk_notavalidkey")
+        self.assertIsNone(result)

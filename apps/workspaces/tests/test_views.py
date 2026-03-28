@@ -521,3 +521,228 @@ class CancelInvitationTest(TestCase):
         )
         self.assertEqual(response.status_code, 404)
         self.assertTrue(Invitation.objects.filter(id=other_invite.id).exists())
+
+
+# ---------------------------------------------------------------------------
+# API key create
+# ---------------------------------------------------------------------------
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+class APIKeyCreateTest(TestCase):
+    def setUp(self):
+        self.owner = _make_user("apikeyowner@example.com")
+        self.workspace = _make_workspace(self.owner, "APIKey Create WS")
+        self.client.force_login(self.owner)
+
+    def test_get_method_not_allowed(self):
+        response = self.client.get("/workspaces/api-keys/create/")
+        self.assertEqual(response.status_code, 405)
+
+    def test_admin_can_create_api_key(self):
+        response = self.client.post(
+            "/workspaces/api-keys/create/", {"name": "My Key"}
+        )
+        self.assertRedirects(
+            response, "/workspaces/settings/", fetch_redirect_response=False
+        )
+        from apps.workspaces.models import APIKey
+        self.assertTrue(
+            APIKey.objects.filter(workspace=self.workspace, name="My Key").exists()
+        )
+
+    def test_create_stores_hash_not_raw_key(self):
+        self.client.post("/workspaces/api-keys/create/", {"name": "Hash Check"})
+        from apps.workspaces.models import APIKey
+        key = APIKey.objects.get(workspace=self.workspace, name="Hash Check")
+        self.assertFalse(key.key_hash.startswith("sk_"))
+        self.assertEqual(len(key.key_hash), 64)  # SHA-256 hex digest
+
+    def test_create_sets_prefix(self):
+        self.client.post("/workspaces/api-keys/create/", {"name": "Prefix Check"})
+        from apps.workspaces.models import APIKey
+        key = APIKey.objects.get(workspace=self.workspace, name="Prefix Check")
+        self.assertTrue(key.key_prefix.startswith("sk_"))
+
+    def test_member_cannot_create_api_key(self):
+        member = _make_user("apikeymember@example.com")
+        Membership.objects.create(
+            user=member, workspace=self.workspace, role=Membership.ROLE_MEMBER
+        )
+        member.current_workspace = self.workspace
+        member.save(update_fields=["current_workspace"])
+        self.client.force_login(member)
+
+        self.client.post("/workspaces/api-keys/create/", {"name": "Sneaky Key"})
+        from apps.workspaces.models import APIKey
+        self.assertFalse(
+            APIKey.objects.filter(workspace=self.workspace, name="Sneaky Key").exists()
+        )
+
+    def test_create_requires_login(self):
+        self.client.logout()
+        response = self.client.post("/workspaces/api-keys/create/", {"name": "Anon Key"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+
+# ---------------------------------------------------------------------------
+# API key rename
+# ---------------------------------------------------------------------------
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+class APIKeyRenameTest(TestCase):
+    def setUp(self):
+        from apps.workspaces.models import APIKey
+        self.owner = _make_user("apikeyrenameowner@example.com")
+        self.workspace = _make_workspace(self.owner, "APIKey Rename WS")
+        _, prefix, key_hash = APIKey.generate()
+        self.api_key = APIKey.objects.create(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Original Name",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+        self.client.force_login(self.owner)
+
+    def test_get_method_not_allowed(self):
+        response = self.client.get(
+            f"/workspaces/api-keys/{self.api_key.id}/rename/"
+        )
+        self.assertEqual(response.status_code, 405)
+
+    def test_admin_can_rename_api_key(self):
+        response = self.client.post(
+            f"/workspaces/api-keys/{self.api_key.id}/rename/",
+            {"name": "Renamed Key"},
+        )
+        self.assertRedirects(
+            response, "/workspaces/settings/", fetch_redirect_response=False
+        )
+        self.api_key.refresh_from_db()
+        self.assertEqual(self.api_key.name, "Renamed Key")
+
+    def test_member_cannot_rename_api_key(self):
+        member = _make_user("apikeyrenmember@example.com")
+        Membership.objects.create(
+            user=member, workspace=self.workspace, role=Membership.ROLE_MEMBER
+        )
+        member.current_workspace = self.workspace
+        member.save(update_fields=["current_workspace"])
+        self.client.force_login(member)
+
+        self.client.post(
+            f"/workspaces/api-keys/{self.api_key.id}/rename/", {"name": "Hijacked"}
+        )
+        self.api_key.refresh_from_db()
+        self.assertNotEqual(self.api_key.name, "Hijacked")
+
+    def test_idor_cannot_rename_key_from_another_workspace(self):
+        from apps.workspaces.models import APIKey
+        other_owner = _make_user("apirenameother@example.com")
+        other_ws = other_owner.current_workspace
+        _, prefix, key_hash = APIKey.generate()
+        other_key = APIKey.objects.create(
+            workspace=other_ws,
+            created_by=other_owner,
+            name="Other Key",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+        response = self.client.post(
+            f"/workspaces/api-keys/{other_key.id}/rename/", {"name": "Stolen"}
+        )
+        self.assertEqual(response.status_code, 404)
+        other_key.refresh_from_db()
+        self.assertEqual(other_key.name, "Other Key")
+
+
+# ---------------------------------------------------------------------------
+# API key delete (revoke)
+# ---------------------------------------------------------------------------
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+class APIKeyDeleteTest(TestCase):
+    def setUp(self):
+        from apps.workspaces.models import APIKey
+        self.owner = _make_user("apikeydeletowner@example.com")
+        self.workspace = _make_workspace(self.owner, "APIKey Delete WS")
+        _, prefix, key_hash = APIKey.generate()
+        self.api_key = APIKey.objects.create(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="To Be Revoked",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+        self.client.force_login(self.owner)
+
+    def test_get_method_not_allowed(self):
+        response = self.client.get(
+            f"/workspaces/api-keys/{self.api_key.id}/delete/"
+        )
+        self.assertEqual(response.status_code, 405)
+
+    def test_admin_can_revoke_api_key(self):
+        from apps.workspaces.models import APIKey
+        response = self.client.post(
+            f"/workspaces/api-keys/{self.api_key.id}/delete/"
+        )
+        self.assertRedirects(
+            response, "/workspaces/settings/", fetch_redirect_response=False
+        )
+        self.assertFalse(APIKey.objects.filter(id=self.api_key.id).exists())
+
+    def test_member_cannot_revoke_api_key(self):
+        from apps.workspaces.models import APIKey
+        member = _make_user("apikeyrevmember@example.com")
+        Membership.objects.create(
+            user=member, workspace=self.workspace, role=Membership.ROLE_MEMBER
+        )
+        member.current_workspace = self.workspace
+        member.save(update_fields=["current_workspace"])
+        self.client.force_login(member)
+
+        self.client.post(f"/workspaces/api-keys/{self.api_key.id}/delete/")
+        self.assertTrue(APIKey.objects.filter(id=self.api_key.id).exists())
+
+    def test_idor_cannot_revoke_key_from_another_workspace(self):
+        from apps.workspaces.models import APIKey
+        other_owner = _make_user("apideleteother@example.com")
+        other_ws = other_owner.current_workspace
+        _, prefix, key_hash = APIKey.generate()
+        other_key = APIKey.objects.create(
+            workspace=other_ws,
+            created_by=other_owner,
+            name="Other Key",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+        response = self.client.post(
+            f"/workspaces/api-keys/{other_key.id}/delete/"
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(APIKey.objects.filter(id=other_key.id).exists())
+
+
+# ---------------------------------------------------------------------------
+# USE_API setting
+# ---------------------------------------------------------------------------
+
+class UseAPISettingTest(TestCase):
+    def setUp(self):
+        self.owner = _make_user("useapiowner@example.com")
+        self.workspace = _make_workspace(self.owner, "UseAPI WS")
+        self.client.force_login(self.owner)
+
+    @override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+    def test_api_keys_section_visible_when_use_api_true(self):
+        response = self.client.get("/workspaces/settings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["use_api"])
+
+    @override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=False)
+    def test_api_keys_section_hidden_when_use_api_false(self):
+        response = self.client.get("/workspaces/settings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["use_api"])

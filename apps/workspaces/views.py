@@ -10,8 +10,8 @@ from django.conf import settings
 from django.views.decorators.http import require_POST
 
 from .decorators import workspace_admin_required
-from .forms import InviteForm, WorkspaceForm
-from .models import Invitation, Membership, Workspace
+from .forms import APIKeyForm, InviteForm, WorkspaceForm
+from .models import APIKey, Invitation, Membership, Workspace
 
 
 @login_required
@@ -93,6 +93,8 @@ def workspace_settings(request):
     invite_form = InviteForm()
     members_can_invite = getattr(settings, "WORKSPACE_MEMBERS_CAN_INVITE", False)
     can_invite = membership.is_admin or members_can_invite
+    use_api = getattr(settings, "USE_API", False)
+    api_keys = workspace.api_keys.select_related("created_by").order_by("-created_at") if use_api else []
 
     return render(
         request,
@@ -105,6 +107,9 @@ def workspace_settings(request):
             "invite_form": invite_form,
             "membership": membership,
             "can_invite": can_invite,
+            "use_api": use_api,
+            "api_keys": api_keys,
+            "api_key_form": APIKeyForm(),
         },
     )
 
@@ -334,4 +339,105 @@ def transfer_ownership(request, membership_id):
         response = HttpResponse(status=204)
         response["HX-Redirect"] = "/workspaces/settings/"
         return response
+    return redirect("workspace_settings")
+
+
+def _api_keys_partial(request, workspace, new_key=None):
+    api_keys = workspace.api_keys.select_related("created_by").order_by("-created_at")
+    return render(
+        request,
+        "workspaces/partials/api_keys_list.html",
+        {"api_keys": api_keys, "workspace": workspace, "new_key": new_key},
+    )
+
+
+@require_POST
+@login_required
+def api_key_create(request):
+    workspace = request.workspace
+    if not workspace:
+        return redirect("dashboard")
+
+    try:
+        membership = Membership.objects.get(user=request.user, workspace=workspace)
+    except Membership.DoesNotExist:
+        return redirect("dashboard")
+
+    if not membership.is_admin:
+        messages.error(request, "Only admins can create API keys.")
+        return redirect("workspace_settings")
+
+    form = APIKeyForm(request.POST)
+    if not form.is_valid():
+        if request.headers.get("HX-Request"):
+            return _api_keys_partial(request, workspace)
+        return redirect("workspace_settings")
+
+    raw_key, prefix, key_hash = APIKey.generate()
+    APIKey.objects.create(
+        workspace=workspace,
+        created_by=request.user,
+        name=form.cleaned_data["name"],
+        key_prefix=prefix,
+        key_hash=key_hash,
+    )
+
+    if request.headers.get("HX-Request"):
+        return _api_keys_partial(request, workspace, new_key=raw_key)
+    messages.success(request, f"API key created. Copy it now — it won't be shown again.\n{raw_key}")
+    return redirect("workspace_settings")
+
+
+@require_POST
+@login_required
+def api_key_rename(request, key_id):
+    workspace = request.workspace
+    if not workspace:
+        return redirect("dashboard")
+
+    api_key = get_object_or_404(APIKey, id=key_id, workspace=workspace)
+
+    try:
+        membership = Membership.objects.get(user=request.user, workspace=workspace)
+    except Membership.DoesNotExist:
+        return redirect("dashboard")
+
+    if not membership.is_admin:
+        messages.error(request, "Only admins can rename API keys.")
+        return redirect("workspace_settings")
+
+    form = APIKeyForm(request.POST)
+    if form.is_valid():
+        api_key.name = form.cleaned_data["name"]
+        api_key.save(update_fields=["name"])
+
+    if request.headers.get("HX-Request"):
+        return _api_keys_partial(request, workspace)
+    messages.success(request, "API key renamed.")
+    return redirect("workspace_settings")
+
+
+@require_POST
+@login_required
+def api_key_delete(request, key_id):
+    workspace = request.workspace
+    if not workspace:
+        return redirect("dashboard")
+
+    api_key = get_object_or_404(APIKey, id=key_id, workspace=workspace)
+
+    try:
+        membership = Membership.objects.get(user=request.user, workspace=workspace)
+    except Membership.DoesNotExist:
+        return redirect("dashboard")
+
+    if not membership.is_admin:
+        messages.error(request, "Only admins can revoke API keys.")
+        return redirect("workspace_settings")
+
+    api_key.delete()
+
+    if request.headers.get("HX-Request"):
+        return _api_keys_partial(request, workspace)
+    messages.success(request, "API key revoked.")
     return redirect("workspace_settings")

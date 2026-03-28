@@ -1,6 +1,7 @@
 from ninja import NinjaAPI
 from ninja.security import django_auth
 
+from .auth import APIKeyAuth
 from .workspaces import router as workspaces_router
 from .accounts import router as accounts_router
 
@@ -8,7 +9,7 @@ api = NinjaAPI(
     title="WebApp Template API",
     version="1.0.0",
     description="API for WebApp Template",
-    auth=django_auth,
+    auth=[django_auth, APIKeyAuth()],
 )
 
 api.add_router("/workspaces/", workspaces_router)
