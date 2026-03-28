@@ -23,7 +23,7 @@ venv/
 .vscode/
 *.swp
 *.swo
-.claude
+.claude/
 
 # OS
 .DS_Store
