@@ -1,0 +1,61 @@
+<div id="api-keys-list">
+  {% if new_key %}
+  <div class="p-4 bg-green-50 border-b border-green-200">
+    <p class="text-sm font-medium text-green-800 mb-2">
+      <i class="fa-solid fa-circle-check mr-1"></i>
+      API key created — copy it now, it won't be shown again.
+    </p>
+    <code class="block text-sm font-mono bg-white border border-green-300 rounded px-3 py-2 select-all break-all">{{ new_key }}</code>
+  </div>
+  {% endif %}
+
+  {% if api_keys %}
+  <ul role="list" class="divide-y divide-gray-100">
+    {% for key in api_keys %}
+    <li class="p-4" x-data="{ renaming: false }">
+      <div class="flex items-center gap-x-4">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900" x-show="!renaming">{{ key.name }}</p>
+          <p class="text-xs text-gray-500 font-mono">{{ key.key_prefix }}…</p>
+          <p class="text-xs text-gray-400">
+            Created {{ key.created_at|timesince }} ago
+            {% if key.created_by %}by {{ key.created_by.display_name }}{% endif %}
+            {% if key.last_used_at %} &middot; Last used {{ key.last_used_at|timesince }} ago{% else %} &middot; Never used{% endif %}
+          </p>
+        </div>
+        <div class="flex items-center gap-x-3 shrink-0">
+          <button x-show="!renaming" @click="renaming = true"
+                  class="text-xs text-gray-500 hover:text-gray-800">
+            Rename
+          </button>
+          <button hx-post="{% url 'api_key_delete' key.id %}"
+                  hx-target="#api-keys-list"
+                  hx-swap="outerHTML"
+                  hx-confirm="Revoke this API key? This cannot be undone."
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  class="text-xs text-red-600 hover:text-red-800">
+            Revoke
+          </button>
+        </div>
+      </div>
+      <!-- Inline rename form -->
+      <form x-show="renaming" x-cloak
+            hx-post="{% url 'api_key_rename' key.id %}"
+            hx-target="#api-keys-list"
+            hx-swap="outerHTML"
+            @htmx:after-request="renaming = false"
+            class="mt-2 flex gap-x-2">
+        {% csrf_token %}
+        <input type="text" name="name" value="{{ key.name }}"
+               class="input flex-1" required maxlength="100">
+        <button type="submit" class="btn-primary text-sm">Save</button>
+        <button type="button" @click="renaming = false"
+                class="text-sm text-gray-500 hover:text-gray-800 px-2">Cancel</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="p-6 text-sm text-gray-500">No API keys yet.</p>
+  {% endif %}
+</div>
