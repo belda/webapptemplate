@@ -79,6 +79,8 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 """
 
     app_display_name = ctx.get("app_display_name", p)
+    use_subscriptions = ctx.get("use_subscriptions", False)
+    subscriptions_line = f"\nUSE_SUBSCRIPTIONS = True  # Enable billing / premium plans" if use_subscriptions else ""
     return f'''\
 from webapptemplate.default_settings import *  # noqa: F401, F403
 
@@ -124,7 +126,7 @@ SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"] = config("GOOGLE_CLIENT_ID
 SOCIALACCOUNT_PROVIDERS["google"]["APP"]["secret"] = config("GOOGLE_CLIENT_SECRET", default="")
 
 # Add your project-specific installed apps here:
-INSTALLED_APPS += []
+INSTALLED_APPS += []{subscriptions_line}
 '''
 
 
@@ -350,7 +352,7 @@ def render_claude_md(ctx):
     use_postgres = ctx.get("use_postgres", True)
     use_redis = ctx.get("use_redis", True)
     use_docker = ctx.get("use_docker", True)
-    db_name = "PostgreSQL" if use_postgres else "SQLite"
+    use_subscriptions = ctx.get("use_subscriptions", False)
 
     infra_notes = []
     if use_postgres:
@@ -361,6 +363,8 @@ def render_claude_md(ctx):
         infra_notes.append("- Redis cache / sessions (configured via `REDIS_URL`)")
     if use_docker:
         infra_notes.append("- Docker Compose files for local dev and production")
+    if use_subscriptions:
+        infra_notes.append("- `USE_SUBSCRIPTIONS = True` — billing / premium plans enabled (wire up Stripe)")
     infra_block = "\n".join(infra_notes)
 
     return f'''\

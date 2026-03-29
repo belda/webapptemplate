@@ -76,7 +76,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [_PACKAGE_DIR / "static"]
+_PACKAGE_STATIC = _PACKAGE_DIR / "static"
+STATICFILES_DIRS = [_PACKAGE_STATIC] if _PACKAGE_STATIC.exists() else []
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
@@ -140,3 +141,8 @@ WORKSPACE_MEMBERS_CAN_INVITE = False
 # When True, the REST API (/api/v1/) is reachable and workspace API key management
 # is shown in workspace settings. Set to False to disable the API entirely.
 USE_API = True
+
+# When True, subscription / billing features are enabled (plan limits, Stripe
+# integration, upgrade prompts). Requires the subscriptions app to be in
+# INSTALLED_APPS. Set to False to hide all billing UI.
+USE_SUBSCRIPTIONS = False

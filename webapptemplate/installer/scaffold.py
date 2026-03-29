@@ -99,7 +99,13 @@ def run_wizard():
     extra_hosts_raw = prompt_optional("  Extra hosts")
     extra_allowed_hosts = [h.strip() for h in extra_hosts_raw.split(",") if h.strip()]
 
-    # 9. Docker
+    # 9. Subscriptions / billing
+    use_subscriptions = prompt_bool(
+        "Enable subscription / premium plans (Stripe billing)?",
+        default=False,
+    )
+
+    # 10. Docker
     use_docker = prompt_bool("Generate Dockerfile + docker-compose.yml?", default=True)
 
     # 10. Secret key (auto-generated, shown to user)
@@ -117,6 +123,7 @@ def run_wizard():
         "domain": domain,
         "admin_email": admin_email,
         "extra_allowed_hosts": extra_allowed_hosts,
+        "use_subscriptions": use_subscriptions,
         "use_docker": use_docker,
         "secret_key": secret_key,
     }
