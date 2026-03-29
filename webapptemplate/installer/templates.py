@@ -2,6 +2,48 @@
 Template rendering functions for scaffold.py.
 Each function returns a string with the rendered file content.
 """
+from pathlib import Path
+
+
+def _get_copy_mode_deps() -> list[str]:
+    """Return webapptemplate's direct dependencies for copy-mode requirements.txt."""
+    # Try installed package metadata (works when installed via pip)
+    try:
+        import importlib.metadata
+        reqs = importlib.metadata.requires("webapptemplate") or []
+        result = [r for r in reqs if ";" not in r]
+        if result:
+            return result
+    except Exception:
+        pass
+
+    # Try reading pyproject.toml from the package source (editable/dev installs)
+    try:
+        import webapptemplate as _wt
+        import tomllib
+        toml_path = Path(_wt.__file__).parent.parent / "pyproject.toml"
+        if toml_path.exists():
+            with open(toml_path, "rb") as f:
+                data = tomllib.load(f)
+            deps = data.get("project", {}).get("dependencies", [])
+            if deps:
+                return deps
+    except Exception:
+        pass
+
+    # Hard-coded fallback (matches pyproject.toml)
+    return [
+        "Django==6.0.3",
+        "django-allauth[socialaccount]==65.15.0",
+        "django-ninja==1.6.2",
+        "whitenoise==6.12.0",
+        "psycopg2-binary==2.9.11",
+        "python-decouple==3.8",
+        "Pillow==12.1.1",
+        "gunicorn==25.3.0",
+        "redis==7.4.0",
+        "django-redis==6.0.0",
+    ]
 
 
 def render_manage_py(ctx):
@@ -30,13 +72,10 @@ if __name__ == "__main__":
 '''
 
 
-def render_settings_base(ctx):
+def _build_db_block(ctx):
     p = ctx["project_name"]
-    use_postgres = ctx["use_postgres"]
-    use_redis = ctx["use_redis"]
-
-    if use_postgres:
-        db_block = """\
+    if ctx["use_postgres"]:
+        return """\
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -47,8 +86,7 @@ DATABASES = {
         "PORT": config("DB_PORT", default="5432"),
     }
 }""".replace("{p}", p)
-    else:
-        db_block = """\
+    return """\
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -56,8 +94,10 @@ DATABASES = {
     }
 }"""
 
-    if use_redis:
-        cache_block = """\
+
+def _build_cache_block(ctx):
+    if ctx["use_redis"]:
+        return """\
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -68,8 +108,7 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 """
-    else:
-        cache_block = """\
+    return """\
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -78,6 +117,14 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 """
 
+
+def render_settings_base(ctx):
+    if ctx.get("use_copy_mode"):
+        return _render_settings_base_copy(ctx)
+
+    p = ctx["project_name"]
+    db_block = _build_db_block(ctx)
+    cache_block = _build_cache_block(ctx)
     app_display_name = ctx.get("app_display_name", p)
     use_subscriptions = ctx.get("use_subscriptions", False)
     subscriptions_line = f"\nUSE_SUBSCRIPTIONS = True  # Enable billing / premium plans" if use_subscriptions else ""
@@ -130,6 +177,158 @@ INSTALLED_APPS += []{subscriptions_line}
 '''
 
 
+def _render_settings_base_copy(ctx):
+    p = ctx["project_name"]
+    db_block = _build_db_block(ctx)
+    cache_block = _build_cache_block(ctx)
+    app_display_name = ctx.get("app_display_name", p)
+    use_subscriptions = ctx.get("use_subscriptions", False)
+    domain = ctx["domain"]
+    admin_email = ctx["admin_email"]
+    subscriptions_line = "\nUSE_SUBSCRIPTIONS = True  # Enable billing / premium plans" if use_subscriptions else ""
+
+    return f'''\
+from pathlib import Path
+from decouple import config, Csv
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+PROJECT_NAME = "{p}"
+APP_NAME = "{app_display_name}"
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.sites",
+    # Core apps (copied into this repo — modify freely)
+    "apps.accounts",
+    "apps.workspaces",
+    "apps.api",
+    "apps.dashboard",
+    # Third-party
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    # Add your project-specific apps here:
+]
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.EmailVerificationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "apps.workspaces.middleware.CurrentWorkspaceMiddleware",
+]
+
+TEMPLATES = [
+    {{
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {{
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "apps.workspaces.context_processors.workspace_context",
+                "webapptemplate.context_processors.app_settings",
+            ],
+        }},
+    }},
+]
+
+AUTH_PASSWORD_VALIDATORS = [
+    {{"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}},
+    {{"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"}},
+    {{"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"}},
+    {{"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"}},
+]
+
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "UTC"
+USE_I18N = True
+USE_TZ = True
+
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STORAGES = {{
+    "default": {{"BACKEND": "django.core.files.storage.FileSystemStorage"}},
+    "staticfiles": {{"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}},
+}}
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = "accounts.User"
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+ACCOUNT_LOGIN_METHODS = {{"email"}}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
+
+SOCIALACCOUNT_PROVIDERS = {{
+    "google": {{
+        "APP": {{
+            "client_id": config("GOOGLE_CLIENT_ID", default=""),
+            "secret": config("GOOGLE_CLIENT_SECRET", default=""),
+        }},
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {{"access_type": "online"}},
+    }}
+}}
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/accounts/login/"
+
+SECRET_KEY = config("SECRET_KEY")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+
+{db_block}
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@{domain}")
+
+{cache_block}
+ADMINS = [("{app_display_name} Admin", config("ADMIN_EMAIL", default="{admin_email}"))]
+
+# Feature flags
+REQUIRE_EMAIL_VERIFICATION = True
+WORKSPACE_MEMBERS_CAN_INVITE = False
+USE_API = True
+USE_SUBSCRIPTIONS = False{subscriptions_line}
+'''
+
+
 def render_settings_dev(ctx):
     p = ctx["project_name"]
     return f'''\
@@ -170,6 +369,36 @@ CSRF_COOKIE_SECURE = True
 
 
 def render_urls(ctx):
+    if ctx.get("use_copy_mode"):
+        return '''\
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from webapptemplate import registry
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("accounts/", include("apps.accounts.urls")),
+    path("accounts/", include("allauth.urls")),
+    path("workspaces/", include("apps.workspaces.urls")),
+    path("", include("apps.dashboard.urls")),
+    # Add your project-specific URLs here
+]
+
+# Auto-include URL modules declared via WebAppConfig subclasses:
+for _entry in registry.get_url_entries():
+    urlpatterns.append(path(_entry["prefix"], include(_entry["module"])))
+
+if getattr(settings, "USE_API", False):
+    from apps.api.v1.router import api as _api
+    for _entry in registry.get_api_routers():
+        _api.add_router(_entry["prefix"], _entry["router"])
+    urlpatterns += [path("api/v1/", _api.urls)]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+'''
     return '''\
 from webapptemplate.urls import urlpatterns as wt_urlpatterns
 from django.urls import path
@@ -202,6 +431,18 @@ from django.core.asgi import get_asgi_application
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.production")
 application = get_asgi_application()
 '''
+
+
+def render_requirements(ctx):
+    import webapptemplate as _wt
+    if ctx.get("use_copy_mode"):
+        deps = _get_copy_mode_deps()
+        lines = [
+            "# Standalone requirements — core apps are in apps/ (no webapptemplate package needed)",
+            "",
+        ] + deps + [""]
+        return "\n".join(lines)
+    return f"webapptemplate=={_wt.__version__}\n"
 
 
 def render_env(ctx, example=False):
@@ -354,6 +595,7 @@ def render_claude_md(ctx):
     use_docker = ctx.get("use_docker", True)
     use_subscriptions = ctx.get("use_subscriptions", False)
 
+    use_copy_mode = ctx.get("use_copy_mode", False)
     infra_notes = []
     if use_postgres:
         infra_notes.append("- PostgreSQL database (configured via `DB_*` env vars)")
@@ -365,6 +607,10 @@ def render_claude_md(ctx):
         infra_notes.append("- Docker Compose files for local dev and production")
     if use_subscriptions:
         infra_notes.append("- `USE_SUBSCRIPTIONS = True` — billing / premium plans enabled (wire up Stripe)")
+    if use_copy_mode:
+        infra_notes.append("- **Copy mode** — `apps/accounts`, `apps/workspaces`, `apps/api`, `apps/dashboard` are part of this repo; edit them freely")
+    else:
+        infra_notes.append("- **Library mode** — core apps come from the `webapptemplate` pip package; upgrade with `pip install -U webapptemplate`")
     infra_block = "\n".join(infra_notes)
 
     return f'''\

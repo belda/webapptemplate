@@ -1,0 +1,78 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build
+        run: pip install build
+
+      - name: Build webapptemplate (root package)
+        run: python -m build --outdir dist/
+
+      - name: Build webapptemplate-installer
+        run: python -m build --outdir installer/dist/
+        working-directory: installer
+
+      - name: Upload webapptemplate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-webapptemplate
+          path: dist/
+
+      - name: Upload webapptemplate-installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-webapptemplate-installer
+          path: installer/dist/
+
+  publish-webapptemplate:
+    name: Publish webapptemplate to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/webapptemplate
+    permissions:
+      id-token: write  # required for OIDC trusted publishing
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-webapptemplate
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-webapptemplate-installer:
+    name: Publish webapptemplate-installer to PyPI
+    needs: [build, publish-webapptemplate]  # installer depends on the main package
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/webapptemplate
+    permissions:
+      id-token: write  # required for OIDC trusted publishing
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-webapptemplate-installer
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

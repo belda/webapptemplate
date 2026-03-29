@@ -3,6 +3,7 @@ Project scaffolding logic for `webapptemplate init`.
 """
 import re
 import sys
+import shutil
 import secrets
 from pathlib import Path
 
@@ -105,10 +106,17 @@ def run_wizard():
         default=False,
     )
 
-    # 10. Docker
+    # 10. Install mode
+    print()
+    print("  Install mode:")
+    print("    lib  — apps are provided by the webapptemplate package (easy upgrades)")
+    print("    copy — accounts/workspaces/api/dashboard are copied into your repo (full control)")
+    use_copy_mode = prompt("Mode", default="lib", choices=["lib", "copy"]) == "copy"
+
+    # 11. Docker
     use_docker = prompt_bool("Generate Dockerfile + docker-compose.yml?", default=True)
 
-    # 10. Secret key (auto-generated, shown to user)
+    # 12. Secret key (auto-generated, shown to user)
     secret_key = generate_secret_key()
     print(f"\n  Auto-generated SECRET_KEY: {secret_key}")
     print("  (saved to .env — keep it secret)\n")
@@ -124,6 +132,7 @@ def run_wizard():
         "admin_email": admin_email,
         "extra_allowed_hosts": extra_allowed_hosts,
         "use_subscriptions": use_subscriptions,
+        "use_copy_mode": use_copy_mode,
         "use_docker": use_docker,
         "secret_key": secret_key,
     }
@@ -153,8 +162,56 @@ def write_file(path: Path, content: str):
     print(f"  + {path}")
 
 
+def copy_project_files(dest: Path, ctx: dict):
+    """Copy apps, base templates, and webapptemplate framework utils into the new project."""
+    import webapptemplate as _wt
+
+    pkg_dir = Path(_wt.__file__).resolve().parent  # webapptemplate/ package dir
+
+    # 1. Copy apps (accounts, workspaces, dashboard, api)
+    apps_src = pkg_dir / "apps"
+    apps_dest = dest / "apps"
+    apps_dest.mkdir(parents=True, exist_ok=True)
+    (apps_dest / "__init__.py").write_text("")
+    print(f"  + {apps_dest / '__init__.py'}")
+
+    for app_name in ("accounts", "workspaces", "dashboard", "api"):
+        src = apps_src / app_name
+        dst = apps_dest / app_name
+        shutil.copytree(
+            src, dst,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+        print(f"  + {dst}/ (copied)")
+        for py_file in dst.rglob("*.py"):
+            text = py_file.read_text()
+            if "webapptemplate.apps." in text:
+                py_file.write_text(text.replace("webapptemplate.apps.", "apps."))
+
+    # 2. Copy base templates
+    templates_src = pkg_dir / "templates"
+    if templates_src.is_dir():
+        shutil.copytree(
+            templates_src, dest / "templates",
+            ignore=shutil.ignore_patterns("__pycache__"),
+            dirs_exist_ok=True,
+        )
+        print(f"  + {dest / 'templates'}/ (copied base templates)")
+
+    # 3. Copy webapptemplate framework utils (app_config, registry, context_processors)
+    wt_dest = dest / "webapptemplate"
+    wt_dest.mkdir(parents=True, exist_ok=True)
+    for fname in ("__init__.py", "app_config.py", "registry.py", "context_processors.py"):
+        shutil.copy2(pkg_dir / fname, wt_dest / fname)
+        print(f"  + {wt_dest / fname} (copied)")
+    (wt_dest / "contrib").mkdir(exist_ok=True)
+    (wt_dest / "contrib" / "__init__.py").write_text("")
+    print(f"  + {wt_dest / 'contrib' / '__init__.py'}")
+
+
 def scaffold_project(dest: Path, ctx: dict):
     use_docker = ctx["use_docker"]
+    use_copy_mode = ctx.get("use_copy_mode", False)
 
     # manage.py
     write_file(dest / "manage.py", tmpl.render_manage_py(ctx))
@@ -169,11 +226,12 @@ def scaffold_project(dest: Path, ctx: dict):
     write_file(dest / "config" / "wsgi.py", tmpl.render_wsgi(ctx))
     write_file(dest / "config" / "asgi.py", tmpl.render_asgi(ctx))
 
-    # apps/ — user-added Django apps live here
-    write_file(dest / "apps" / "__init__.py", "")
-
-    # templates/ placeholder
-    write_file(dest / "templates" / ".gitkeep", "")
+    # apps/ + templates/ + webapptemplate utils (copy mode) or placeholders (lib mode)
+    if use_copy_mode:
+        copy_project_files(dest, ctx)
+    else:
+        write_file(dest / "apps" / "__init__.py", "")
+        write_file(dest / "templates" / ".gitkeep", "")
 
     # static/ placeholder
     write_file(dest / "static" / ".gitkeep", "")
@@ -182,8 +240,8 @@ def scaffold_project(dest: Path, ctx: dict):
     write_file(dest / ".env", tmpl.render_env(ctx, example=False))
     write_file(dest / ".env.example", tmpl.render_env(ctx, example=True))
 
-    # requirements.txt — pin exact version for reproducible installs
-    write_file(dest / "requirements.txt", f"webapptemplate=={webapptemplate.__version__}\n")
+    # requirements.txt
+    write_file(dest / "requirements.txt", tmpl.render_requirements(ctx))
 
     # .gitignore
     write_file(dest / ".gitignore", tmpl.render_gitignore(ctx))
