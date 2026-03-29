@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}WebApp{% endblock %}</title>
+  <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -42,7 +43,8 @@
   </style>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full">
+<body class="h-full" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
   {% block body %}{% endblock %}
 </body>
 </html>

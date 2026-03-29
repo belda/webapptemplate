@@ -1,7 +1,6 @@
 """
 Project scaffolding logic for `webapptemplate init`.
 """
-import os
 import re
 import sys
 import secrets
@@ -34,6 +33,11 @@ def prompt(question, default=None, choices=None):
         return answer
 
 
+def prompt_optional(question):
+    """Prompt that accepts an empty answer (returns empty string)."""
+    return input(f"{question}: ").strip()
+
+
 def prompt_bool(question, default=True):
     default_str = "y" if default else "n"
     answer = prompt(question, default=default_str, choices=["y", "n"])
@@ -54,14 +58,25 @@ def run_wizard():
     print("  ──────────────────────────────────")
     print()
 
-    # 1. Project name
+    # 1. Project name (Python identifier)
     project_name = prompt("Project name (Python identifier, e.g. myapp)")
     project_name = slugify(project_name)
     if not project_name:
         print("Invalid project name.")
         sys.exit(1)
 
-    # 2. Database
+    # 2. App display name (shown in sidebar, emails, docs)
+    default_display = project_name.replace("_", " ").title()
+    app_display_name = prompt(
+        "App display name (shown in sidebar and emails)",
+        default=default_display,
+    )
+
+    # 3. Short project description (1–2 sentences for README / CLAUDE.md)
+    print("  Project description (1–2 sentences, press Enter to skip):")
+    description = prompt_optional("  Description")
+
+    # 4. Database
     db_choice = prompt(
         "Database backend",
         default="postgresql",
@@ -69,19 +84,25 @@ def run_wizard():
     )
     use_postgres = db_choice == "postgresql"
 
-    # 3. Redis
+    # 5. Redis
     use_redis = prompt_bool("Include Redis (cache / sessions)?", default=True)
 
-    # 4. Domain
+    # 6. Domain
     domain = prompt("Production domain (e.g. myapp.com)", default=f"{project_name}.com")
 
-    # 5. Admin email
+    # 7. Admin email
     admin_email = prompt("Admin email address", default=f"admin@{domain}")
 
-    # 6. Docker
+    # 8. Additional ALLOWED_HOSTS for development (beyond localhost/127.0.0.1)
+    print("  Extra development ALLOWED_HOSTS (comma-separated, e.g. myapp.local)")
+    print("  Leave blank to use only localhost and 127.0.0.1")
+    extra_hosts_raw = prompt_optional("  Extra hosts")
+    extra_allowed_hosts = [h.strip() for h in extra_hosts_raw.split(",") if h.strip()]
+
+    # 9. Docker
     use_docker = prompt_bool("Generate Dockerfile + docker-compose.yml?", default=True)
 
-    # 7. Secret key (auto-generated, shown to user)
+    # 10. Secret key (auto-generated, shown to user)
     secret_key = generate_secret_key()
     print(f"\n  Auto-generated SECRET_KEY: {secret_key}")
     print("  (saved to .env — keep it secret)\n")
@@ -89,10 +110,13 @@ def run_wizard():
     # Collect config
     ctx = {
         "project_name": project_name,
+        "app_display_name": app_display_name,
+        "description": description,
         "use_postgres": use_postgres,
         "use_redis": use_redis,
         "domain": domain,
         "admin_email": admin_email,
+        "extra_allowed_hosts": extra_allowed_hosts,
         "use_docker": use_docker,
         "secret_key": secret_key,
     }
@@ -123,9 +147,6 @@ def write_file(path: Path, content: str):
 
 
 def scaffold_project(dest: Path, ctx: dict):
-    p = ctx["project_name"]
-    use_postgres = ctx["use_postgres"]
-    use_redis = ctx["use_redis"]
     use_docker = ctx["use_docker"]
 
     # manage.py
@@ -160,8 +181,9 @@ def scaffold_project(dest: Path, ctx: dict):
     # .gitignore
     write_file(dest / ".gitignore", tmpl.render_gitignore(ctx))
 
-    # README
+    # README and CLAUDE.md
     write_file(dest / "README.md", tmpl.render_readme(ctx))
+    write_file(dest / "CLAUDE.md", tmpl.render_claude_md(ctx))
 
     # Docker files (optional)
     if use_docker:

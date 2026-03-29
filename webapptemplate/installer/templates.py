@@ -78,6 +78,7 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 """
 
+    app_display_name = ctx.get("app_display_name", p)
     return f'''\
 from webapptemplate.default_settings import *  # noqa: F401, F403
 
@@ -87,6 +88,7 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 PROJECT_NAME = "{p}"
+APP_NAME = "{app_display_name}"
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
@@ -116,7 +118,7 @@ EMAIL_BACKEND = config(
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@{ctx["domain"]}")
 
 {cache_block}
-ADMINS = [("{p} Admin", config("ADMIN_EMAIL", default="{ctx["admin_email"]}"))]
+ADMINS = [("{app_display_name} Admin", config("ADMIN_EMAIL", default="{ctx["admin_email"]}"))]
 
 SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"] = config("GOOGLE_CLIENT_ID", default="")
 SOCIALACCOUNT_PROVIDERS["google"]["APP"]["secret"] = config("GOOGLE_CLIENT_SECRET", default="")
@@ -208,10 +210,13 @@ def render_env(ctx, example=False):
     db_pass = "your-db-password" if example else "postgres"
     redis_url = "redis://127.0.0.1:6379/1"
 
+    base_hosts = "localhost,127.0.0.1"
+    extra_hosts = ctx.get("extra_allowed_hosts", [])
+    allowed_hosts = base_hosts + ("," + ",".join(extra_hosts) if extra_hosts else "")
     lines = [
         f"SECRET_KEY={secret_key}",
         "DEBUG=True",
-        f"ALLOWED_HOSTS=localhost,127.0.0.1",
+        f"ALLOWED_HOSTS={allowed_hosts}",
         "",
         "# Email",
         f"DEFAULT_FROM_EMAIL=noreply@{ctx['domain']}",
@@ -284,9 +289,12 @@ Thumbs.db
 
 def render_readme(ctx):
     p = ctx["project_name"]
+    app_name = ctx.get("app_display_name", p)
+    description = ctx.get("description", "")
+    desc_block = f"\n{description}\n" if description else ""
     return f'''\
-# {p}
-
+# {app_name}
+{desc_block}
 Built with [webapptemplate](https://github.com/your-org/webapptemplate).
 
 ## Setup
@@ -315,7 +323,134 @@ python manage.py runserver
 python manage.py startapp myapp apps/myapp
 ```
 
-Then add `"apps.myapp"` to `INSTALLED_APPS` in `config/settings/base.py`.
+In `apps/myapp/apps.py` inherit from `WebAppConfig` to auto-register nav items and URLs:
+
+```python
+from webapptemplate.app_config import WebAppConfig
+
+class MyAppConfig(WebAppConfig):
+    name = "apps.myapp"
+    url_prefix = "myapp/"          # auto-includes apps/myapp/urls.py
+    nav_items = [
+        {{"url": "myapp:index", "label": "My App", "icon": "cog", "order": 20}},
+    ]
+```
+
+Then add `"apps.myapp"` to `INSTALLED_APPS` in `config/settings/base.py` — no changes
+to `config/urls.py` or templates needed.
+'''
+
+
+def render_claude_md(ctx):
+    p = ctx["project_name"]
+    app_name = ctx.get("app_display_name", p)
+    description = ctx.get("description", "")
+    desc_block = f"\n{description}\n" if description else ""
+    domain = ctx.get("domain", f"{p}.com")
+    use_postgres = ctx.get("use_postgres", True)
+    use_redis = ctx.get("use_redis", True)
+    use_docker = ctx.get("use_docker", True)
+    db_name = "PostgreSQL" if use_postgres else "SQLite"
+
+    infra_notes = []
+    if use_postgres:
+        infra_notes.append("- PostgreSQL database (configured via `DB_*` env vars)")
+    else:
+        infra_notes.append("- SQLite database (`db.sqlite3` in project root)")
+    if use_redis:
+        infra_notes.append("- Redis cache / sessions (configured via `REDIS_URL`)")
+    if use_docker:
+        infra_notes.append("- Docker Compose files for local dev and production")
+    infra_block = "\n".join(infra_notes)
+
+    return f'''\
+# CLAUDE.md — {app_name}
+{desc_block}
+This project is built on **webapptemplate**, a reusable Django SaaS scaffold.
+
+## Running the project
+
+```bash
+# Create virtualenv
+python -m venv .venv
+source .venv/bin/activate  # or .venv/bin/activate.fish
+
+pip install -r requirements.txt
+cp .env.example .env  # fill in SECRET_KEY etc.
+
+# Dev server (uses config/settings/development.py by default)
+python manage.py migrate
+python manage.py runserver
+
+# Run checks
+python manage.py check
+```
+
+## Settings
+
+| File | Purpose |
+|------|---------|
+| `config/settings/base.py` | Shared settings; imports `webapptemplate.default_settings` |
+| `config/settings/development.py` | Local dev overrides |
+| `config/settings/production.py` | Production / Docker |
+
+Key project settings in `config/settings/base.py`:
+- `APP_NAME = "{app_name}"` — displayed in sidebar and emails
+- `ALLOWED_HOSTS` — loaded from `.env`
+
+## Infrastructure
+{infra_block}
+
+## App layout
+
+```
+apps/
+  <your apps here>
+config/
+  settings/
+  urls.py       # extends webapptemplate.urls — no manual URL registration needed
+templates/      # project-level template overrides (rarely needed)
+static/
+```
+
+## Adding a new feature app
+
+```bash
+python manage.py startapp myfeature apps/myfeature
+```
+
+In `apps/myfeature/apps.py`:
+
+```python
+from webapptemplate.app_config import WebAppConfig
+
+class MyFeatureConfig(WebAppConfig):
+    name = "apps.myfeature"
+    url_prefix = "myfeature/"       # auto-includes apps/myfeature/urls.py
+    nav_items = [
+        {{"url": "myfeature:index", "label": "My Feature", "icon": "cog", "order": 20}},
+    ]
+    # Optional — auto-registers a Ninja router at /api/v1/myfeature/
+    # api_router_module = "apps.myfeature.api"
+    # api_router_prefix = "/myfeature/"
+```
+
+Then add `"apps.myfeature"` to `INSTALLED_APPS` in `config/settings/base.py`.
+No changes to `config/urls.py` or templates required.
+
+## What webapptemplate provides
+
+- Custom `User` model with email login (no username), avatar, `current_workspace`
+- Multi-tenant **Workspace** system with `Membership` (owner/admin/member) and email **Invitations**
+- Google OAuth via django-allauth
+- Email verification gate (`REQUIRE_EMAIL_VERIFICATION`)
+- Django Ninja REST API at `/api/v1/` with session + API key auth
+- Sidebar layout with Alpine.js workspace switcher and HTMX partials
+- Tailwind CSS, HTMX 2, Alpine.js 3, Font Awesome 6 (all CDN — no build step)
+
+## Production domain
+
+`{domain}` — update `CSRF_TRUSTED_ORIGINS` in `config/settings/production.py` if this changes.
 '''
 
 

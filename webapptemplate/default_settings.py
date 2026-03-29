@@ -57,6 +57,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "webapptemplate.apps.workspaces.context_processors.workspace_context",
+                "webapptemplate.context_processors.app_settings",
             ],
         },
     },
@@ -119,6 +120,10 @@ LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 DEFAULT_FROM_EMAIL = "noreply@example.com"
+
+# Human-readable application name shown in the sidebar and emails.
+# Override this in your project's settings/base.py.
+APP_NAME = "WebApp"
 
 # Feature flags
 # When True, email/password registrations must confirm their email before

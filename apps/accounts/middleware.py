@@ -29,6 +29,7 @@ class EmailVerificationMiddleware:
     Only active when settings.REQUIRE_EMAIL_VERIFICATION is True.
     Social-auth users (Google etc.) are always treated as verified because
     allauth marks their EmailAddress records as verified on sign-in.
+    Staff and superusers are always treated as verified.
     """
 
     def __init__(self, get_response):
@@ -49,6 +50,9 @@ class EmailVerificationMiddleware:
         return any(path.startswith(prefix) for prefix in _EXEMPT_PREFIXES)
 
     def _has_verified_email(self, user):
+        if user.is_staff or user.is_superuser:
+            return True
+
         from allauth.account.models import EmailAddress
 
         return EmailAddress.objects.filter(user=user, verified=True).exists()
