@@ -158,11 +158,12 @@ def workspace_invite(request):
             invite_url = request.build_absolute_uri(
                 f"/workspaces/accept-invite/{invitation.token}/"
             )
+            app_name = getattr(settings, "APP_NAME", workspace.name)
             send_mail(
-                subject=f"You're invited to {workspace.name}",
+                subject=f"You've been invited to {workspace.name} on {app_name}",
                 message=(
                     f"{request.user.display_name} has invited you to join "
-                    f'"{workspace.name}".\n\nAccept here: {invite_url}'
+                    f'"{workspace.name}" on {app_name}.\n\nAccept here: {invite_url}'
                 ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "webapptemplate"
+version = "0.1.0"
+description = "Reusable Django webapp template: users, workspaces, API, auth, subscriptions"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "Django==6.0.3",
+    "django-allauth[socialaccount]==65.15.0",
+    "django-ninja==1.6.2",
+    "whitenoise==6.12.0",
+    "psycopg2-binary==2.9.11",
+    "python-decouple==3.8",
+    "Pillow==12.1.1",
+    "gunicorn==25.3.0",
+    "redis==7.4.0",
+    "django-redis==6.0.0",
+]
+
+[project.scripts]
+webapptemplate = "webapptemplate.installer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/webapptemplate"
+Repository = "https://github.com/your-org/webapptemplate"
+
+[tool.hatch.build.targets.wheel]
+packages = ["webapptemplate"]
+
+[tool.hatch.build]
+include = [
+    "webapptemplate/**",
+    "templates/**",
+    "static/**",
+]
+exclude = [
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/migrations/__pycache__",
+]

@@ -89,7 +89,7 @@ class EmailVerificationMiddlewareTest(TestCase):
 
     def test_accept_invite_path_exempt(self):
         """Invitation-acceptance URL is exempt so unverified users can accept invites."""
-        from apps.workspaces.models import Invitation, Workspace, Membership
+        from webapptemplate.apps.workspaces.models import Invitation, Workspace, Membership
         owner = _make_user("owner@example.com", verified=True)
         owner.refresh_from_db()
         workspace = owner.current_workspace

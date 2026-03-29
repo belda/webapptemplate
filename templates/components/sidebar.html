@@ -19,7 +19,7 @@
       <div class="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center shrink-0">
         <i class="fa-solid fa-bolt text-white"></i>
       </div>
-      <span class="text-white font-semibold text-sm truncate">WebApp</span>
+      <span class="text-white font-semibold text-sm truncate">{{ APP_NAME }}</span>
     </div>
 
     <!-- Hamburger: desktop → toggle collapse; mobile → close drawer -->
@@ -46,7 +46,9 @@
       <li>
         <ul role="list" class="space-y-1">
           {% include "components/nav_item.html" with url="dashboard" label="Dashboard" icon="home" %}
-          {# Add more nav items in your individual projects #}
+          {% for item in nav_items %}
+            {% include "components/nav_item.html" with url=item.url label=item.label icon=item.icon %}
+          {% endfor %}
         </ul>
       </li>
 

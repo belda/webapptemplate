@@ -7,11 +7,11 @@ def get_current_workspace(request):
     user = request.user
     if user.current_workspace_id:
         # Verify the user is still a member
-        from apps.workspaces.models import Membership
+        from webapptemplate.apps.workspaces.models import Membership
         if Membership.objects.filter(user=user, workspace_id=user.current_workspace_id).exists():
             return user.current_workspace
     # Fallback: pick the first workspace they belong to
-    from apps.workspaces.models import Membership
+    from webapptemplate.apps.workspaces.models import Membership
     membership = Membership.objects.filter(user=user).select_related("workspace").first()
     if membership:
         user.current_workspace = membership.workspace

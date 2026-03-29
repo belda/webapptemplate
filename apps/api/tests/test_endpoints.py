@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
 
-from apps.workspaces.models import Workspace, Membership, Invitation
+from webapptemplate.apps.workspaces.models import Workspace, Membership, Invitation
 
 User = get_user_model()
 
@@ -263,7 +263,7 @@ class WorkspaceInvitationsEndpointTest(TestCase):
 @override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
 class APIKeyBearerAuthTest(TestCase):
     def setUp(self):
-        from apps.workspaces.models import APIKey
+        from webapptemplate.apps.workspaces.models import APIKey
         self.owner = _make_user("bearerowner@example.com")
         self.workspace = _make_workspace(self.owner, "Bearer WS")
         self.raw_key, prefix, key_hash = APIKey.generate()
@@ -278,7 +278,7 @@ class APIKeyBearerAuthTest(TestCase):
     def test_valid_key_authenticate_returns_api_key(self):
         """APIKeyAuth.authenticate should return the APIKey object for a valid token."""
         from unittest.mock import MagicMock
-        from apps.workspaces.api_auth import APIKeyAuth
+        from webapptemplate.apps.workspaces.api_auth import APIKeyAuth
         result = APIKeyAuth().authenticate(MagicMock(), self.raw_key)
         self.assertEqual(result, self.api_key)
 
@@ -296,7 +296,7 @@ class APIKeyBearerAuthTest(TestCase):
     def test_last_used_at_is_updated_on_authenticate(self):
         """last_used_at is stamped in APIKeyAuth.authenticate, before the endpoint runs."""
         from unittest.mock import MagicMock
-        from apps.workspaces.api_auth import APIKeyAuth
+        from webapptemplate.apps.workspaces.api_auth import APIKeyAuth
         self.assertIsNone(self.api_key.last_used_at)
         APIKeyAuth().authenticate(MagicMock(), self.raw_key)
         self.api_key.refresh_from_db()
@@ -312,6 +312,6 @@ class APIKeyBearerAuthTest(TestCase):
 
     def test_invalid_key_authenticate_returns_none(self):
         from unittest.mock import MagicMock
-        from apps.workspaces.api_auth import APIKeyAuth
+        from webapptemplate.apps.workspaces.api_auth import APIKeyAuth
         result = APIKeyAuth().authenticate(MagicMock(), "sk_notavalidkey")
         self.assertIsNone(result)
