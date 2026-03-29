@@ -17,6 +17,7 @@ from webapptemplate import registry
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("webapptemplate.apps.accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("workspaces/", include("webapptemplate.apps.workspaces.urls")),

@@ -100,23 +100,37 @@ def run_wizard():
     extra_hosts_raw = prompt_optional("  Extra hosts")
     extra_allowed_hosts = [h.strip() for h in extra_hosts_raw.split(",") if h.strip()]
 
-    # 9. Subscriptions / billing
+    # 9. REST API
+    use_api = prompt_bool(
+        "Enable REST API (/api/v1/) with session + API key auth?",
+        default=True,
+    )
+
+    # 10. Subscriptions / billing
     use_subscriptions = prompt_bool(
         "Enable subscription / premium plans (Stripe billing)?",
         default=False,
     )
 
-    # 10. Install mode
+    # 11. Languages
+    print()
+    print("  Languages to support (comma-separated codes).")
+    print("  Common codes: en, fr, de, es, pt-br, it, nl, ja, zh-hans")
+    print("  Leave blank for English only.")
+    languages_raw = prompt_optional("  Languages [en]")
+    languages = [l.strip() for l in languages_raw.split(",") if l.strip()] or ["en"]
+
+    # 12. Install mode
     print()
     print("  Install mode:")
     print("    lib  — apps are provided by the webapptemplate package (easy upgrades)")
     print("    copy — accounts/workspaces/api/dashboard are copied into your repo (full control)")
     use_copy_mode = prompt("Mode", default="lib", choices=["lib", "copy"]) == "copy"
 
-    # 11. Docker
+    # 13. Docker
     use_docker = prompt_bool("Generate Dockerfile + docker-compose.yml?", default=True)
 
-    # 12. Secret key (auto-generated, shown to user)
+    # 14. Secret key (auto-generated, shown to user)
     secret_key = generate_secret_key()
     print(f"\n  Auto-generated SECRET_KEY: {secret_key}")
     print("  (saved to .env — keep it secret)\n")
@@ -131,7 +145,9 @@ def run_wizard():
         "domain": domain,
         "admin_email": admin_email,
         "extra_allowed_hosts": extra_allowed_hosts,
+        "use_api": use_api,
         "use_subscriptions": use_subscriptions,
+        "languages": languages,
         "use_copy_mode": use_copy_mode,
         "use_docker": use_docker,
         "secret_key": secret_key,

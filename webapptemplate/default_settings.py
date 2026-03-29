@@ -35,6 +35,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -54,6 +55,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "webapptemplate.apps.workspaces.context_processors.workspace_context",
@@ -74,6 +76,12 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+
+# Only list languages you actively support. The sidebar language switcher
+# appears automatically when this list contains more than one entry.
+LANGUAGES = [
+    ("en", "English"),
+]
 
 STATIC_URL = "/static/"
 _PACKAGE_STATIC = _PACKAGE_DIR / "static"

@@ -34,6 +34,11 @@ def prompt(question, default=None, choices=None):
         return answer
 
 
+def prompt_optional(question):
+    """Prompt that accepts an empty answer (returns empty string)."""
+    return input(f"{question}: ").strip()
+
+
 def prompt_bool(question, default=True):
     default_str = "y" if default else "n"
     answer = prompt(question, default=default_str, choices=["y", "n"])
@@ -78,17 +83,31 @@ def run_wizard():
     # 5. Admin email
     admin_email = prompt("Admin email address", default=f"admin@{domain}")
 
-    # 6. Install mode
+    # 6. REST API
+    use_api = prompt_bool(
+        "Enable REST API (/api/v1/) with session + API key auth?",
+        default=True,
+    )
+
+    # 6a. Languages
+    print()
+    print("  Languages to support (comma-separated codes).")
+    print("  Common codes: en, fr, de, es, pt-br, it, nl, ja, zh-hans")
+    print("  Leave blank for English only.")
+    languages_raw = prompt_optional("  Languages [en]")
+    languages = [l.strip() for l in languages_raw.split(",") if l.strip()] or ["en"]
+
+    # 7. Install mode (renumbered)
     print()
     print("  Install mode:")
     print("    lib  — apps are provided by the webapptemplate package (easy upgrades)")
     print("    copy — accounts/workspaces/api/dashboard are copied into your repo (full control)")
     use_copy_mode = prompt("Mode", default="lib", choices=["lib", "copy"]) == "copy"
 
-    # 7. Docker
+    # 8. Docker
     use_docker = prompt_bool("Generate Dockerfile + docker-compose.yml?", default=True)
 
-    # 8. Secret key (auto-generated, shown to user)
+    # 9. Secret key (auto-generated, shown to user)
     secret_key = generate_secret_key()
     print(f"\n  Auto-generated SECRET_KEY: {secret_key}")
     print("  (saved to .env — keep it secret)\n")
@@ -100,6 +119,8 @@ def run_wizard():
         "use_redis": use_redis,
         "domain": domain,
         "admin_email": admin_email,
+        "use_api": use_api,
+        "languages": languages,
         "use_copy_mode": use_copy_mode,
         "use_docker": use_docker,
         "secret_key": secret_key,

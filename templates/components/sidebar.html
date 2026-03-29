@@ -44,7 +44,7 @@
 
       <!-- Main nav items -->
       <li>
-        <ul role="list" class="space-y-1">
+        <ul role="list" :class="sidebarCollapsed ? 'space-y-2' : 'space-y-1'">
           {% include "components/nav_item.html" with url="dashboard" label="Dashboard" icon="home" %}
           {% for item in nav_items %}
             {% include "components/nav_item.html" with url=item.url label=item.label icon=item.icon %}
@@ -55,6 +55,9 @@
       <li class="mt-auto"></li>
     </ul>
   </nav>
+
+  <!-- Language switcher (only shown when LANGUAGES has > 1 entry) -->
+  {% include "components/language_switcher.html" %}
 
   <!-- Workspace switcher -->
   <div class="border-t border-gray-700 px-3 py-3">

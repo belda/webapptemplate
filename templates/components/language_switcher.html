@@ -1,0 +1,57 @@
+{% load i18n %}
+{% get_current_language as current_lang %}
+{% get_available_languages as site_languages %}
+{% if site_languages|length > 1 %}
+{% get_language_info for current_lang as current_lang_info %}
+<div class="relative border-t border-gray-700 px-3 py-2"
+     x-data="{
+       open: false,
+       flags: {
+         'en':'🇺🇸','en-us':'🇺🇸','en-gb':'🇬🇧',
+         'fr':'🇫🇷','de':'🇩🇪','es':'🇪🇸',
+         'pt':'🇵🇹','pt-br':'🇧🇷','it':'🇮🇹',
+         'nl':'🇳🇱','pl':'🇵🇱','ru':'🇷🇺',
+         'zh-hans':'🇨🇳','zh-hant':'🇹🇼','ja':'🇯🇵',
+         'ko':'🇰🇷','ar':'🇸🇦','tr':'🇹🇷',
+         'sv':'🇸🇪','da':'🇩🇰','fi':'🇫🇮',
+         'nb':'🇳🇴','cs':'🇨🇿','hu':'🇭🇺','uk':'🇺🇦'
+       },
+       flag(code) { return this.flags[code] || '🌐'; }
+     }"
+     @click.outside="open = false">
+
+  <!-- Trigger -->
+  <button type="button"
+          @click="open = !open"
+          class="flex items-center w-full rounded-md text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          :class="sidebarCollapsed ? 'justify-center py-3 px-1' : 'gap-x-3 p-2'">
+    <span class="text-base leading-none shrink-0" x-text="flag('{{ current_lang }}')"></span>
+    <span x-show="!sidebarCollapsed" x-cloak class="text-sm font-semibold flex-1 text-left truncate">
+      {{ current_lang_info.name_local }}
+    </span>
+    <i x-show="!sidebarCollapsed" x-cloak
+       class="fa-solid fa-chevron-up fa-xs shrink-0 transition-transform duration-200"
+       :class="{ 'rotate-180': !open }"></i>
+  </button>
+
+  <!-- Dropdown (opens upward) -->
+  <div x-show="open"
+       x-cloak
+       x-transition
+       class="absolute bottom-full left-0 mb-1 min-w-40 origin-bottom bg-gray-800 rounded-md shadow-lg py-1 z-50">
+    {% for lang_code, lang_name in site_languages %}
+    <form method="post" action="{% url 'set_language' %}">
+      {% csrf_token %}
+      <input type="hidden" name="language" value="{{ lang_code }}">
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit"
+              class="flex items-center w-full gap-x-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+              @click="open = false">
+        <span class="text-base leading-none shrink-0" x-text="flag('{{ lang_code }}')"></span>
+        <span>{{ lang_name }}</span>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

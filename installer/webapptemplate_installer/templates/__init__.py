@@ -43,6 +43,25 @@ def _get_copy_mode_deps() -> list[str]:
     ]
 
 
+_LANGUAGE_NAMES = {
+    "en": "English", "fr": "French", "de": "German", "es": "Spanish",
+    "pt": "Portuguese", "pt-br": "Brazilian Portuguese", "it": "Italian",
+    "nl": "Dutch", "pl": "Polish", "ru": "Russian", "zh-hans": "Simplified Chinese",
+    "zh-hant": "Traditional Chinese", "ja": "Japanese", "ko": "Korean",
+    "ar": "Arabic", "tr": "Turkish", "sv": "Swedish", "da": "Danish",
+    "fi": "Finnish", "nb": "Norwegian", "cs": "Czech", "hu": "Hungarian",
+    "uk": "Ukrainian",
+}
+
+
+def _build_languages_block(ctx):
+    languages = ctx.get("languages", ["en"])
+    if len(languages) <= 1:
+        return ""
+    items = "\n".join(f'    ("{l}", "{_LANGUAGE_NAMES.get(l, l)}"),' for l in languages)
+    return f"\nLANGUAGES = [\n{items}\n]\n"
+
+
 def render_manage_py(ctx):
     p = ctx["project_name"]
     return f'''#!/usr/bin/env python
@@ -123,6 +142,12 @@ def render_settings_base(ctx):
     db_block = _build_db_block(ctx)
     cache_block = _build_cache_block(ctx)
     app_display_name = ctx.get("app_display_name", p)
+    use_api = ctx.get("use_api", True)
+    languages_block = _build_languages_block(ctx)
+    feature_flags = []
+    if not use_api:
+        feature_flags.append("USE_API = False  # REST API disabled")
+    flags_block = ("\n" + "\n".join(feature_flags) + "\n") if feature_flags else ""
 
     return f'''\
 from webapptemplate.default_settings import *  # noqa: F401, F403
@@ -169,7 +194,7 @@ SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"] = config("GOOGLE_CLIENT_ID
 SOCIALACCOUNT_PROVIDERS["google"]["APP"]["secret"] = config("GOOGLE_CLIENT_SECRET", default="")
 
 # Add your project-specific installed apps here:
-INSTALLED_APPS += []
+INSTALLED_APPS += []{languages_block}{flags_block}
 '''
 
 
@@ -179,6 +204,8 @@ def _render_settings_base_copy(ctx):
     cache_block = _build_cache_block(ctx)
     app_display_name = ctx.get("app_display_name", p)
     use_subscriptions = ctx.get("use_subscriptions", False)
+    use_api = ctx.get("use_api", True)
+    languages_block = _build_languages_block(ctx)
     domain = ctx["domain"]
     admin_email = ctx["admin_email"]
     subscriptions_line = "\nUSE_SUBSCRIPTIONS = True  # Enable billing / premium plans" if use_subscriptions else ""
@@ -220,6 +247,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -239,6 +267,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
+                "django.template.context_processors.i18n",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.workspaces.context_processors.workspace_context",
@@ -260,6 +289,11 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# Only list languages you actively support. The sidebar language switcher
+# appears automatically when this list contains more than one entry.
+LANGUAGES = [
+    ("en", "English"),
+]{languages_block}
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {{
     "default": {{"BACKEND": "django.core.files.storage.FileSystemStorage"}},
@@ -320,7 +354,7 @@ ADMINS = [("{app_display_name} Admin", config("ADMIN_EMAIL", default="{admin_ema
 # Feature flags
 REQUIRE_EMAIL_VERIFICATION = True
 WORKSPACE_MEMBERS_CAN_INVITE = False
-USE_API = True
+USE_API = {"True" if use_api else "False"}
 USE_SUBSCRIPTIONS = False{subscriptions_line}
 '''
 
@@ -375,6 +409,7 @@ from webapptemplate import registry
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("i18n/", include("django.conf.urls.i18n")),
     path("accounts/", include("apps.accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("workspaces/", include("apps.workspaces.urls")),
