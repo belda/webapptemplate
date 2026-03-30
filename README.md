@@ -119,6 +119,114 @@ templates/dashboard.html          # overrides the default dashboard
 templates/components/sidebar.html # overrides the sidebar
 ```
 
+### Add a settings panel
+
+Settings panels let any app inject a card into the workspace settings page
+(`/workspaces/settings/`) or the user profile page (`/accounts/settings/profile/`)
+without touching framework templates or views.
+
+#### Simple case — ModelForm panel
+
+Declare the panel on your `WebAppConfig` and provide a template. The framework
+generates the view for you.
+
+```python
+# apps/billing/apps.py
+from webapptemplate.app_config import WebAppConfig
+from webapptemplate.settings_panels import WorkspaceSettingsPanel, UserSettingsPanel
+
+class BillingConfig(WebAppConfig):
+    name = "apps.billing"
+
+    workspace_settings_panels = [
+        WorkspaceSettingsPanel(
+            id="billing",                          # must be unique across all apps
+            title="Billing",
+            description="Manage your subscription plan.",
+            template="billing/panels/workspace_billing.html",
+            form_class=BillingSettingsForm,        # must be a ModelForm(instance=workspace)
+            admin_only=True,                       # hide from non-admins (optional)
+            order=50,                              # controls position (default 100)
+        ),
+    ]
+
+    user_settings_panels = [
+        UserSettingsPanel(
+            id="notifications",
+            title="Notifications",
+            template="billing/panels/user_notifications.html",
+            form_class=NotificationPrefsForm,      # ModelForm(instance=user)
+        ),
+    ]
+```
+
+`form_class` must be a `ModelForm`. It is instantiated with `instance=workspace`
+(workspace panels) or `instance=request.user` (user panels).
+
+Write the panel template — it receives `panel`, `form`, and `saved` in context:
+
+```html
+{# apps/billing/templates/billing/panels/workspace_billing.html #}
+{% if saved %}
+<p class="mb-3 text-sm text-green-600 font-medium">Saved.</p>
+{% endif %}
+<form hx-post="{% url panel.url_name %}"
+      hx-target="#panel-{{ panel.id }}"
+      hx-swap="innerHTML">
+  {% csrf_token %}
+  <div class="space-y-4">
+    {{ form.as_p }}
+  </div>
+  <div class="mt-4 flex justify-end">
+    <button type="submit" class="btn-primary">Save</button>
+  </div>
+</form>
+```
+
+The `hx-target="#panel-{{ panel.id }}"` / `hx-swap="innerHTML"` pair keeps the
+card header in place and swaps only the form area after submission.
+
+That's it — no URL registration, no template overrides, no view edits.
+
+#### Custom view panel
+
+For panels that need more than a simple form save, provide `view_func` instead
+of `form_class`. Your view handles both GET (returns the panel body HTML) and POST:
+
+```python
+from webapptemplate.settings_panels import WorkspaceSettingsPanel
+
+def my_billing_panel_view(request):
+    workspace = request.workspace
+    # ... custom logic ...
+    return render(request, "billing/panels/workspace_billing.html", {"panel": panel, ...})
+
+class BillingConfig(WebAppConfig):
+    name = "apps.billing"
+    workspace_settings_panels = [
+        WorkspaceSettingsPanel(
+            id="billing",
+            title="Billing",
+            template="billing/panels/workspace_billing.html",
+            view_func=my_billing_panel_view,
+        ),
+    ]
+```
+
+`view_func` panels are loaded via HTMX (`hx-trigger="load"`) on the settings
+page — the framework renders a placeholder and your view provides the content.
+
+#### URL names
+
+Each panel gets an auto-registered URL:
+
+| Panel type | URL | `{% url %}` name |
+|---|---|---|
+| `WorkspaceSettingsPanel` | `/workspaces/settings/panel/<id>/` | `settings_panel_<id>` |
+| `UserSettingsPanel` | `/accounts/settings/panel/<id>/` | `user_settings_panel_<id>` |
+
+Use these in templates as shown above: `{% url panel.url_name %}`.
+
 ### Workspace-aware views
 
 ```python

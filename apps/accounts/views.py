@@ -7,6 +7,8 @@ from django.urls import reverse
 from allauth.account.models import EmailAddress
 from allauth.account.internal.flows.email_verification import send_verification_email_for_user
 
+from webapptemplate.settings_panels import prepare_user_panels
+
 from .forms import ProfileForm
 
 
@@ -56,4 +58,7 @@ def profile_settings(request):
     else:
         form = ProfileForm(instance=request.user)
 
-    return render(request, "accounts/profile_settings.html", {"form": form})
+    return render(request, "accounts/profile_settings.html", {
+        "form": form,
+        "user_panels": prepare_user_panels(request),
+    })

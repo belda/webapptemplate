@@ -99,5 +99,26 @@
   </div>
   {% endif %}
 
+  <!-- Settings panels registered by project apps via WebAppConfig -->
+  {% for entry in workspace_panels %}
+  <div class="bg-white shadow-sm ring-1 ring-gray-200 rounded-lg">
+    <div class="p-6 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900">{{ entry.panel.title }}</h2>
+      {% if entry.panel.description %}<p class="text-sm text-gray-500">{{ entry.panel.description }}</p>{% endif %}
+    </div>
+    {% if entry.htmx_load %}
+    <div id="panel-{{ entry.panel.id }}" class="p-6"
+         hx-get="{% url entry.panel.url_name %}"
+         hx-trigger="load">
+      <p class="text-sm text-gray-400">Loading…</p>
+    </div>
+    {% else %}
+    <div id="panel-{{ entry.panel.id }}" class="p-6">
+      {% include entry.panel.template with panel=entry.panel form=entry.form %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
 </div>
 {% endblock %}

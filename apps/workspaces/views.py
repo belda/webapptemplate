@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.conf import settings
 from django.views.decorators.http import require_POST
 
+from webapptemplate.settings_panels import prepare_workspace_panels
+
 from .decorators import workspace_admin_required
 from .forms import APIKeyForm, InviteForm, WorkspaceForm
 from .models import APIKey, Invitation, Membership, Workspace
@@ -95,6 +97,7 @@ def workspace_settings(request):
     can_invite = membership.is_admin or members_can_invite
     use_api = getattr(settings, "USE_API", False)
     api_keys = workspace.api_keys.select_related("created_by").order_by("-created_at") if use_api else []
+    workspace_panels = prepare_workspace_panels(request, workspace, membership)
 
     return render(
         request,
@@ -110,6 +113,7 @@ def workspace_settings(request):
             "use_api": use_api,
             "api_keys": api_keys,
             "api_key_form": APIKeyForm(),
+            "workspace_panels": workspace_panels,
         },
     )
 
