@@ -16,7 +16,7 @@ production-ready Django project in under a minute with:
 Install the CLI (requires Python 3.11+):
 
 ```bash
-pip install /path/to/webapptemplate   # local checkout; or: pip install webapptemplate (once on PyPI)
+pip install git+https://github.com/belda/webapptemplate.git
 ```
 
 Scaffold a new project:
@@ -342,7 +342,7 @@ DEFAULT_FROM_EMAIL=noreply@example.com
 To work on `webapptemplate` directly (not on a scaffolded project):
 
 ```bash
-git clone <repo>
+git clone https://github.com/belda/webapptemplate.git
 cd webapptemplate
 
 pyenv exec python -m venv .venv
