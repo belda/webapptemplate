@@ -36,7 +36,7 @@
 
     <!-- Page content -->
     <main class="flex-1 overflow-y-auto">
-      <div class="py-8 px-4 sm:px-6 lg:px-8">
+      <div class="{% block content_class %}py-8 px-4 sm:px-6 lg:px-8{% endblock %}">
         {% include "components/messages.html" %}
         {% block content %}{% endblock %}
       </div>

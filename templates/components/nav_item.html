@@ -30,6 +30,8 @@
     <i class="fa-solid fa-bell fa-xl fa-fw shrink-0"></i>
     {% elif icon == "key" %}
     <i class="fa-solid fa-key fa-xl fa-fw shrink-0"></i>
+    {% elif icon %}
+    <i class="{{ icon }} fa-xl fa-fw shrink-0"></i>
     {% endif %}
     <span x-show="!sidebarCollapsed" x-cloak>{{ label }}</span>
   </a>
