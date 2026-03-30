@@ -140,6 +140,8 @@ templates/
 
 **When customising the app name**: update the `<span>` in the sidebar header (`sidebar.html`) — that is the only place it lives.
 
+**When customising the app logo/icon**: the icon is isolated in `templates/components/app_logo.html`. Never hardcode the icon anywhere else — always `{% include "components/app_logo.html" %}`. To override in a subproject, create `templates/components/app_logo.html` in the project's own `templates/` directory (project templates take precedence over framework templates).
+
 ## Frontend libraries (all via CDN, no build step)
 
 - **Tailwind CSS** — utility classes; configured inline in `base.html`

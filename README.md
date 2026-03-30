@@ -119,6 +119,33 @@ templates/dashboard.html          # overrides the default dashboard
 templates/components/sidebar.html # overrides the sidebar
 ```
 
+### Override the app logo icon
+
+The sidebar header and mobile topbar both include `components/app_logo.html`. To swap the
+default bolt icon for your own, create this file in your project's `templates/` directory:
+
+```
+templates/components/app_logo.html
+```
+
+Example — replace bolt with a custom SVG:
+
+```html
+<div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+  <img src="{% static 'img/logo.png' %}" alt="Logo" class="h-6 w-6">
+</div>
+```
+
+Or with a different Font Awesome icon:
+
+```html
+<div class="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+  <i class="fa-solid fa-leaf text-white"></i>
+</div>
+```
+
+Project templates take precedence over framework templates, so no other changes are needed.
+
 ### Add a settings panel
 
 Settings panels let any app inject a card into the workspace settings page

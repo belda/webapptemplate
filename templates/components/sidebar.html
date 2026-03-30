@@ -16,9 +16,7 @@
     <!-- Logo + name (hidden when desktop-collapsed) -->
     <div class="flex items-center gap-x-3 min-w-0"
          x-show="!sidebarCollapsed" x-cloak>
-      <div class="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center shrink-0">
-        <i class="fa-solid fa-bolt text-white"></i>
-      </div>
+      {% include "components/app_logo.html" %}
       <span class="text-white font-semibold text-sm truncate">{{ APP_NAME }}</span>
     </div>
 
