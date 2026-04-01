@@ -29,8 +29,12 @@ for _panel in registry.get_user_settings_panels():
     urlpatterns.append(path(f"accounts/{_panel.url_path}", _view, name=_panel.url_name))
 
 if getattr(settings, "USE_API", False):
+    from django.views.generic import RedirectView
     from webapptemplate.apps.api.v1.router import api
-    urlpatterns += [path("api/v1/", api.urls)]
+    urlpatterns += [
+        path("api/v1/", api.urls),
+        path("api/docs/", RedirectView.as_view(url="/api/v1/docs"), name="api_docs"),
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

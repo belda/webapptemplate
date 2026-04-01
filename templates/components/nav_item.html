@@ -1,7 +1,7 @@
 {% load static %}
 {% url url as nav_url %}
 <li>
-  <a href="{{ nav_url }}"
+  <a href="{{ nav_url }}"{% if target %} target="{{ target }}"{% endif %}
      class="group flex items-center w-full rounded-md text-sm font-semibold
             {% if request.path == nav_url %}bg-gray-800 text-white{% else %}text-gray-400 hover:bg-gray-800 hover:text-white{% endif %}"
      :class="sidebarCollapsed ? 'justify-center h-12 px-2' : 'gap-x-3 p-2'"
@@ -30,6 +30,8 @@
     <i class="fa-solid fa-bell fa-xl fa-fw shrink-0"></i>
     {% elif icon == "key" %}
     <i class="fa-solid fa-key fa-xl fa-fw shrink-0"></i>
+    {% elif icon == "code" %}
+    <i class="fa-solid fa-code fa-xl fa-fw shrink-0"></i>
     {% elif icon %}
     <i class="{{ icon }} fa-xl fa-fw shrink-0"></i>
     {% endif %}

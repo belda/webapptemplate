@@ -36,7 +36,7 @@
         <button @click="workspacesOpen = !workspacesOpen"
                 class="flex w-full items-center gap-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 :class="workspacesOpen ? 'bg-gray-100' : ''">
-          <i class="fa-solid fa-building fa-fw text-gray-400"></i>
+          <span class="inline-block w-[1.25em] shrink-0"></span>
           <span class="flex-1 text-left">Switch workspace</span>
           <svg class="h-4 w-4 text-gray-400 transition-transform" :class="workspacesOpen ? 'rotate-90' : ''"
                fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -79,7 +79,7 @@
            @mouseenter="workspacesOpen = true" @mouseleave="workspacesOpen = false">
         <button class="flex w-full items-center gap-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 :class="workspacesOpen ? 'bg-gray-100' : ''">
-          <i class="fa-solid fa-building fa-fw text-gray-400"></i>
+          <span class="inline-block w-[1.25em] shrink-0"></span>
           <span class="flex-1 text-left">Switch workspace</span>
           <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -133,6 +133,24 @@
         <i class="fa-solid fa-user fa-fw text-gray-400"></i>
         Profile settings
       </a>
+
+      {% if use_api %}
+      <!-- API docs -->
+      <a href="{% url 'api_docs' %}" target="_blank"
+         class="flex items-center gap-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+        <i class="fa-solid fa-code fa-fw text-gray-400"></i>
+        API docs
+      </a>
+      {% endif %}
+
+      {% if request.user.is_staff %}
+      <!-- Django admin -->
+      <a href="{% url 'admin:index' %}" target="_blank"
+         class="flex items-center gap-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+        <span class="inline-block w-[1.25em] shrink-0"></span>
+        Django admin
+      </a>
+      {% endif %}
 
       <div class="border-t border-gray-100 mt-1"></div>
 
