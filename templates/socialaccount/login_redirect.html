@@ -1,0 +1,17 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Redirecting…" %}{% endblock %}
+
+{% block extra_head %}
+  <meta http-equiv="refresh" content="0;URL='{{ redirect_to }}'" />
+{% endblock %}
+
+{% block auth_title %}{% translate "Redirecting…" %}{% endblock %}
+
+{% block auth_content %}
+<div class="text-center text-sm text-gray-600">
+  <p class="mb-4">{% blocktranslate with provider=provider %}You are being redirected to {{ provider }}.{% endblocktranslate %}</p>
+  <a href="{{ redirect_to }}" class="btn-primary w-full">{% translate "Continue" %}</a>
+</div>
+{% endblock %}
