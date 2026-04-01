@@ -8,6 +8,8 @@
 {% endblock %}
 
 {% block auth_content %}
+{% get_providers as socialaccount_providers %}
+{% for provider in socialaccount_providers %}{% if provider.id == "google" %}
 <!-- Google OAuth -->
 <div>
   <a href="{% provider_login_url 'google' %}"
@@ -26,6 +28,7 @@
   <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div>
   <div class="relative flex justify-center text-sm"><span class="bg-white px-2 text-gray-500">or continue with email</span></div>
 </div>
+{% endif %}{% endfor %}
 
 <!-- Email/password form -->
 <form method="post" action="{% url 'account_login' %}">
