@@ -55,10 +55,10 @@
       <form hx-post="{% url 'workspace_invite' %}"
             hx-target="#pending-invites"
             hx-swap="outerHTML"
-            class="flex gap-x-3">
+            class="flex flex-col sm:flex-row gap-3">
         {% csrf_token %}
         <div class="flex-1">{{ invite_form.email }}</div>
-        <button type="submit" class="btn-primary shrink-0">Send invite</button>
+        <button type="submit" class="btn-primary sm:shrink-0">Send invite</button>
       </form>
     </div>
   </div>
@@ -87,10 +87,10 @@
       <form hx-post="{% url 'api_key_create' %}"
             hx-target="#api-keys-list"
             hx-swap="outerHTML"
-            class="flex gap-x-3">
+            class="flex flex-col sm:flex-row gap-3">
         {% csrf_token %}
         <div class="flex-1">{{ api_key_form.name }}</div>
-        <button type="submit" class="btn-primary shrink-0">Create key</button>
+        <button type="submit" class="btn-primary sm:shrink-0">Create key</button>
       </form>
     </div>
 
