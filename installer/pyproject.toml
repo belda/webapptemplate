@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "webapptemplate-installer"
-version = "0.1.0"
+version = "0.2.0"
 description = "CLI installer for scaffolding new webapptemplate Django projects"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
-    "webapptemplate>=0.1.0",
+    "webapptemplate>=0.2.0",
 ]
 
 [project.scripts]

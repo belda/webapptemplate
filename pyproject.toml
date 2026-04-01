@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "webapptemplate"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reusable Django webapp template: users, workspaces, API, auth, subscriptions"
 readme = "README.md"
 requires-python = ">=3.11"
