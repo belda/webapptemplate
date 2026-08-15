@@ -5,7 +5,9 @@ production-ready Django project in under a minute with:
 
 - **Google OAuth + email/password auth** via `django-allauth`
 - **Workspaces** — multi-tenant, with roles, invitations, and API keys
-- **HTMX + Alpine.js + Tailwind CSS** — no build step required
+- **Post-deploy steps** — run-once work the deploy performs after restart
+- **In-app feedback** — bug/wish reports with browser context and a reply thread
+- **HTMX + Alpine.js + Tailwind CSS** — precompiled by the standalone CLI, no Node required
 - **Django Ninja** REST API at `/api/v1/`
 - **Docker** ready — Postgres + Redis, separate dev and prod configs
 
@@ -36,10 +38,17 @@ Then set up the generated project:
 cd myproject
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+make css                 # compile Tailwind -> static/css/app.css
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
+
+`make run` does all three of compile-CSS, migrate and runserver; `make css-watch`
+rebuilds the stylesheet as you edit. `static/css/app.css` is a build artefact and
+is not committed — run `make css` after cloning, and again whenever you add
+utility classes. Because the build only keeps classes it can find by scanning,
+never assemble a class name by string concatenation; see `tailwind.config.js`.
 
 Visit http://localhost:8000 — you'll be redirected to the login page.
 
@@ -279,6 +288,9 @@ myproject/
     urls.py            Extends webapptemplate.urls; add project-specific routes here
     wsgi.py / asgi.py
   apps/                Your project-specific Django apps go here
+  static/src/app.css   Tailwind source (compiled to static/css/app.css)
+  tailwind.config.js   Scan globs + theme; see the comment at the top
+  scripts/build_css.sh Downloads the pinned Tailwind CLI and builds
   templates/           Project templates (take precedence over framework templates)
   static/              Project static files
   .env                 Secrets — never commit this
@@ -292,6 +304,40 @@ myproject/
 Framework apps (accounts, workspaces, dashboard, API) live inside the installed
 `webapptemplate` package at `webapptemplate/apps/` and are imported as
 `webapptemplate.apps.accounts`, etc.
+
+---
+
+## Post-deploy steps
+
+Work that must run once per release but is too slow or too side-effectful for a
+migration — backfills, re-probing storage, queueing background jobs — is a
+**post-deploy step**: a management command subclassing
+`webapptemplate.apps.deploy.base.PostDeployCommand` with a unique
+`post_deploy_id` (`<YYYYMMDD>_<what_it_does>`).
+
+```python
+# apps/myapp/management/commands/backfill_slugs.py
+from webapptemplate.apps.deploy.base import PostDeployCommand
+
+
+class Command(PostDeployCommand):
+    help = "Give every legacy row a slug."
+    post_deploy_id = "20260815_backfill_slugs"
+
+    def handle(self, *args, **options):
+        ...
+```
+
+Run `manage.py post_deploy` after the services restart. A step that succeeded is
+never run again; one that failed is retried on the next deploy. The history lives
+in the admin-editable `PostDeployStep` table, so a step handled by hand can be
+closed and a failed one re-armed. Useful flags: `--list`, `--dry-run`,
+`--only <id>`, `--force`, `--fake`.
+
+Never write "run this command after deploying" in a commit message — write the step.
+
+Discovery scans app labels starting with `apps.` or `webapptemplate.apps.`;
+override `POST_DEPLOY_APP_PREFIXES` if yours live elsewhere.
 
 ---
 
@@ -375,7 +421,7 @@ webapptemplate init
 | Framework | Django 6.0.4 |
 | Auth | django-allauth 65.15 |
 | API | django-ninja 1.6.2 |
-| Frontend | HTMX 2 + Alpine.js 3 + Tailwind CSS (CDN) |
+| Frontend | HTMX 2 + Alpine.js 3 + Tailwind CSS (precompiled) |
 | Static files | Whitenoise 6 |
 | Database | PostgreSQL (prod) / SQLite (dev) |
 | Cache / sessions | Redis + django-redis (optional) |

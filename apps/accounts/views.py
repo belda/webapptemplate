@@ -1,12 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
 from allauth.account.models import EmailAddress
 from allauth.account.internal.flows.email_verification import send_verification_email_for_user
 
+from webapptemplate.apps.workspaces.http import htmx_redirect
 from webapptemplate.settings_panels import prepare_user_panels
 
 from .forms import ProfileForm
@@ -50,10 +50,7 @@ def profile_settings(request):
             form.save()
             messages.success(request, "Profile updated successfully.")
             if request.headers.get("HX-Request"):
-                return HttpResponse(
-                    status=204,
-                    headers={"HX-Redirect": reverse("profile_settings")},
-                )
+                return htmx_redirect(reverse("profile_settings"))
             return redirect("profile_settings")
     else:
         form = ProfileForm(instance=request.user)

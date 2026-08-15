@@ -13,6 +13,8 @@ from webapptemplate.settings_panels import prepare_workspace_panels
 
 from .decorators import workspace_admin_required
 from .forms import APIKeyForm, InviteForm, WorkspaceForm
+from .http import htmx_redirect
+from .middleware import set_current_workspace
 from .models import APIKey, Invitation, Membership, Workspace
 
 
@@ -39,13 +41,10 @@ def workspace_create(request):
                 workspace=workspace,
                 role=Membership.ROLE_OWNER,
             )
-            request.user.current_workspace = workspace
-            request.user.save(update_fields=["current_workspace"])
+            set_current_workspace(request, workspace)
             messages.success(request, f'Workspace "{workspace.name}" created.')
             if request.headers.get("HX-Request"):
-                response = HttpResponse(status=204)
-                response["HX-Redirect"] = "/dashboard/"
-                return response
+                return htmx_redirect("/dashboard/")
             return redirect("dashboard")
     else:
         form = WorkspaceForm()
@@ -61,12 +60,9 @@ def workspace_switch(request, slug):
     if not Membership.objects.filter(user=request.user, workspace=workspace).exists():
         messages.error(request, "You are not a member of that workspace.")
         return redirect("dashboard")
-    request.user.current_workspace = workspace
-    request.user.save(update_fields=["current_workspace"])
+    set_current_workspace(request, workspace)
     if request.headers.get("HX-Request"):
-        response = HttpResponse(status=204)
-        response["HX-Redirect"] = "/dashboard/"
-        return response
+        return htmx_redirect("/dashboard/")
     return redirect("dashboard")
 
 
@@ -221,8 +217,7 @@ def accept_invitation(request, token):
     invitation.accepted_at = timezone.now()
     invitation.save()
 
-    request.user.current_workspace = invitation.workspace
-    request.user.save(update_fields=["current_workspace"])
+    set_current_workspace(request, invitation.workspace)
 
     # Accepting an invitation proves ownership of the email — mark it verified
     # so the user isn't blocked by the email-verification gate.
@@ -341,9 +336,7 @@ def transfer_ownership(request, membership_id):
 
     messages.success(request, f"Ownership transferred to {target_membership.user.display_name}.")
     if request.headers.get("HX-Request"):
-        response = HttpResponse(status=204)
-        response["HX-Redirect"] = "/workspaces/settings/"
-        return response
+        return htmx_redirect("/workspaces/settings/")
     return redirect("workspace_settings")
 
 

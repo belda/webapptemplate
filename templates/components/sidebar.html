@@ -54,6 +54,22 @@
     </ul>
   </nav>
 
+  {% comment %} Opens the bug/wish modal via HTMX; the response replaces this placeholder. {% endcomment %}
+  <div class="px-3 pb-2">
+    <button type="button"
+            hx-get="{% url 'feedback:bug_report_modal' %}"
+            hx-target="#bug-report-modal-slot"
+            hx-swap="innerHTML"
+            hx-disinherit="hx-push-url hx-target"
+            class="group flex w-full items-center rounded-md text-sm font-semibold text-gray-400 hover:bg-gray-800 hover:text-white"
+            :class="sidebarCollapsed ? 'justify-center h-12 px-2' : 'gap-x-3 p-2'"
+            title="Report a bug or wish">
+      <i class="fa-solid fa-bug fa-xl fa-fw shrink-0"></i>
+      <span x-show="!sidebarCollapsed" x-cloak>Report a bug</span>
+    </button>
+  </div>
+  <div id="bug-report-modal-slot"></div>
+
   <!-- Language switcher (only shown when LANGUAGES has > 1 entry) -->
   {% include "components/language_switcher.html" %}
 

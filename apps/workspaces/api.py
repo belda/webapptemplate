@@ -2,6 +2,7 @@ from typing import List
 from ninja import Router
 from django.shortcuts import get_object_or_404
 
+from .api_auth import require_key_workspace
 from .models import Workspace, Membership, Invitation
 from .schemas import WorkspaceSchema, MembershipSchema, InvitationSchema, WorkspaceCreateSchema
 
@@ -11,7 +12,11 @@ router = Router(tags=["Workspaces"])
 @router.get("/", response=List[WorkspaceSchema])
 def list_workspaces(request):
     """List all workspaces the current user belongs to."""
-    return [m.workspace for m in Membership.objects.filter(user=request.user).select_related("workspace")]
+    memberships = Membership.objects.filter(user=request.user).select_related("workspace")
+    api_key = getattr(request, "auth", None)
+    if getattr(api_key, "workspace_id", None):
+        memberships = memberships.filter(workspace_id=api_key.workspace_id)
+    return [m.workspace for m in memberships]
 
 
 @router.post("/", response=WorkspaceSchema)
@@ -25,6 +30,7 @@ def create_workspace(request, data: WorkspaceCreateSchema):
 @router.get("/{slug}/", response=WorkspaceSchema)
 def get_workspace(request, slug: str):
     workspace = get_object_or_404(Workspace, slug=slug)
+    require_key_workspace(request, workspace)
     get_object_or_404(Membership, user=request.user, workspace=workspace)
     return workspace
 
@@ -32,6 +38,7 @@ def get_workspace(request, slug: str):
 @router.get("/{slug}/members/", response=List[MembershipSchema])
 def list_members(request, slug: str):
     workspace = get_object_or_404(Workspace, slug=slug)
+    require_key_workspace(request, workspace)
     get_object_or_404(Membership, user=request.user, workspace=workspace)
     return workspace.memberships.select_related("user").all()
 
@@ -39,6 +46,7 @@ def list_members(request, slug: str):
 @router.get("/{slug}/invitations/", response=List[InvitationSchema])
 def list_invitations(request, slug: str):
     workspace = get_object_or_404(Workspace, slug=slug)
+    require_key_workspace(request, workspace)
     membership = get_object_or_404(Membership, user=request.user, workspace=workspace)
     if not membership.is_admin:
         return []

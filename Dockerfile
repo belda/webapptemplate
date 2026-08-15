@@ -6,9 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps
+# System deps. curl is needed to fetch the standalone Tailwind CLI.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc \
+    libpq-dev gcc curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Python deps
@@ -17,6 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # App code
 COPY . .
+
+# Compile Tailwind before collectstatic — static/css/app.css is a build
+# artefact, not checked in, and the manifest storage needs it to exist.
+RUN ./scripts/build_css.sh
 
 # Collect static files
 RUN python manage.py collectstatic --noinput

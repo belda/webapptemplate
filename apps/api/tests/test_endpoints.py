@@ -315,3 +315,63 @@ class APIKeyBearerAuthTest(TestCase):
         from webapptemplate.apps.workspaces.api_auth import APIKeyAuth
         result = APIKeyAuth().authenticate(MagicMock(), "sk_notavalidkey")
         self.assertIsNone(result)
+
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False, USE_API=True)
+class APIKeyHardeningTest(TestCase):
+    """A Bearer key acts as its creator, and only inside its own workspace."""
+
+    def setUp(self):
+        from webapptemplate.apps.workspaces.models import APIKey
+
+        self.owner = _make_user("keyowner@example.com")
+        self.workspace = _make_workspace(self.owner, "Key WS")
+        self.other_workspace = _make_workspace(self.owner, "Other WS")
+        self.raw_key, prefix, key_hash = APIKey.generate()
+        self.api_key = APIKey.objects.create(
+            workspace=self.workspace,
+            created_by=self.owner,
+            name="Pinned Key",
+            key_prefix=prefix,
+            key_hash=key_hash,
+        )
+
+    def _get(self, path):
+        return self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {self.raw_key}")
+
+    def test_key_authenticates_as_its_creator(self):
+        response = self._get(f"/api/v1/workspaces/{self.workspace.slug}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)["slug"], self.workspace.slug)
+
+    def test_key_cannot_reach_another_workspace_of_the_same_owner(self):
+        """The escalation this exists for: the owner is a member of both, so the
+        membership check alone would let a key minted for one reach the other."""
+        response = self._get(f"/api/v1/workspaces/{self.other_workspace.slug}/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_listing_is_scoped_to_the_pinned_workspace(self):
+        response = self._get("/api/v1/workspaces/")
+        self.assertEqual(response.status_code, 200)
+        slugs = [w["slug"] for w in json.loads(response.content)]
+        self.assertEqual(slugs, [self.workspace.slug])
+
+    def test_members_and_invitations_are_pinned_too(self):
+        for path in ("members", "invitations"):
+            with self.subTest(path=path):
+                allowed = self._get(f"/api/v1/workspaces/{self.workspace.slug}/{path}/")
+                self.assertEqual(allowed.status_code, 200)
+                denied = self._get(f"/api/v1/workspaces/{self.other_workspace.slug}/{path}/")
+                self.assertEqual(denied.status_code, 403)
+
+    def test_key_of_deactivated_user_is_rejected(self):
+        self.owner.is_active = False
+        self.owner.save(update_fields=["is_active"])
+        response = self._get(f"/api/v1/workspaces/{self.workspace.slug}/")
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_key_without_creator_is_rejected(self):
+        self.api_key.created_by = None
+        self.api_key.save(update_fields=["created_by"])
+        response = self._get(f"/api/v1/workspaces/{self.workspace.slug}/")
+        self.assertIn(response.status_code, [401, 403])

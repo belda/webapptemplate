@@ -371,6 +371,16 @@ from config.settings.base import *  # noqa: F401, F403
 
 DEBUG = True
 
+# Serve static files straight from STATICFILES_DIRS. The production manifest
+# storage resolves every {{% static %}} through staticfiles.json, so without this
+# any template referencing a static asset raises "Missing staticfiles manifest
+# entry" until `collectstatic` has run — which breaks `runserver` on a fresh
+# clone and every test that renders such a template.
+STORAGES = {{
+    **STORAGES,
+    "staticfiles": {{"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}},
+}}
+
 # Show emails in terminal during development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 '''
@@ -572,6 +582,10 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Tailwind build artefacts (`make css` regenerates both)
+/bin/tailwindcss
+/static/css/app.css
 '''
 
 
@@ -777,13 +791,17 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.production
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \\
-    libpq-dev gcc \\
+    libpq-dev gcc curl \\
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+# Compile Tailwind before collectstatic — static/css/app.css is a build
+# artefact, not checked in, and the manifest storage needs it to exist.
+RUN ./scripts/build_css.sh
 
 RUN python manage.py collectstatic --noinput
 
@@ -865,4 +883,166 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
+'''
+
+
+def render_tailwind_config(ctx):
+    """Scan globs for the scaffolded project.
+
+    The installed `webapptemplate` package is scanned too: in lib mode the base
+    templates (sidebar, nav, auth pages) are served from inside the package, so
+    their classes only survive the purge if the build can see them.
+    """
+    return '''\
+/** @type {import('tailwindcss').Config} */
+// Tailwind is precompiled by the standalone CLI (see scripts/build_css.sh) —
+// there is no CDN and no Node toolchain. The build only keeps classes it can
+// find by scanning, so never assemble a class name by string concatenation
+// (`"bg-" + colour` is invisible to the scanner); write it out literally.
+//
+// apps/**/*.py and static/js/**/*.js are scanned on purpose: class strings are
+// routinely built in Python (badge/status helpers) and in vanilla JS, and none
+// of those appear in any template.
+const path = require("path");
+
+let packageRoot = null;
+try {
+  // Base templates shipped inside the installed package (lib mode).
+  packageRoot = path.dirname(require.resolve("webapptemplate/package.json"));
+} catch (e) {
+  packageRoot = null;
+}
+
+module.exports = {
+  content: [
+    "./templates/**/*.html",
+    "./apps/**/templates/**/*.html",
+    "./apps/**/*.py",
+    "./static/js/**/*.js",
+    ...(packageRoot ? [packageRoot + "/**/*.html"] : []),
+    // Fallback for a venv install, where the package is not resolvable by node.
+    "./.venv/lib/*/site-packages/webapptemplate/**/*.html",
+    "./venv/lib/*/site-packages/webapptemplate/**/*.html",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: "#eff6ff", 100: "#dbeafe", 200: "#bfdbfe", 300: "#93c5fd",
+          400: "#60a5fa", 500: "#3b82f6", 600: "#2563eb", 700: "#1d4ed8",
+          800: "#1e40af", 900: "#1e3a8a", 950: "#172554",
+        },
+      },
+    },
+  },
+};
+'''
+
+
+def render_css_source(ctx):
+    return '''\
+/* Tailwind source — compiled by the standalone CLI to static/css/app.css.
+   Build: `make css`; the Dockerfile runs it before collectstatic.
+   Add your own component classes here. Plain CSS that needs no Tailwind
+   (x-cloak) stays in base.html so it applies before this file loads. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .input {
+    @apply block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300
+           placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6;
+  }
+  .btn-primary {
+    @apply inline-flex justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold
+           text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2
+           focus-visible:outline-offset-2 focus-visible:outline-primary-600;
+  }
+  .btn-secondary {
+    @apply inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold
+           text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50;
+  }
+  .btn-danger {
+    @apply inline-flex justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold
+           text-white shadow-sm hover:bg-red-500;
+  }
+}
+'''
+
+
+def render_build_css_sh(ctx):
+    return '''\
+#!/usr/bin/env bash
+# Compile Tailwind via the standalone CLI (no Node). Downloads a pinned binary to
+# ./bin on first run, then builds static/src/app.css -> static/css/app.css.
+# Used by `make css` (local) and the Dockerfile (before collectstatic).
+#   WATCH=1 scripts/build_css.sh   # rebuild on change (local dev)
+set -euo pipefail
+
+TAILWIND_VERSION="${TAILWIND_VERSION:-v3.4.17}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN_DIR="${ROOT}/bin"
+BIN="${BIN_DIR}/tailwindcss"
+
+case "$(uname -s)" in
+  Linux)  os=linux ;;
+  Darwin) os=macos ;;
+  *) echo "Unsupported OS: $(uname -s)" >&2; exit 1 ;;
+esac
+case "$(uname -m)" in
+  x86_64|amd64) arch=x64 ;;
+  arm64|aarch64) arch=arm64 ;;
+  *) echo "Unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
+asset="tailwindcss-${os}-${arch}"
+
+if [ ! -x "${BIN}" ]; then
+  mkdir -p "${BIN_DIR}"
+  url="https://github.com/tailwindlabs/tailwindcss/releases/download/${TAILWIND_VERSION}/${asset}"
+  echo "Downloading Tailwind CLI ${TAILWIND_VERSION} (${asset})…"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSL --fail -o "${BIN}" "${url}"
+  else
+    wget -qO "${BIN}" "${url}"
+  fi
+  chmod +x "${BIN}"
+fi
+
+cd "${ROOT}"
+args=(-i static/src/app.css -o static/css/app.css --minify)
+if [ "${WATCH:-0}" = "1" ]; then
+  exec "${BIN}" "${args[@]}" --watch
+fi
+"${BIN}" "${args[@]}"
+echo "Built static/css/app.css"
+'''
+
+
+def render_makefile(ctx):
+    return '''\
+.PHONY: css css-watch run
+
+ifeq ($(firstword $(MAKECMDGOALS)),run)
+RUNSERVER_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+%::
+	@:
+endif
+
+PYTHON ?= .venv/bin/python
+
+# Compile Tailwind to static/css/app.css (downloads the pinned standalone CLI to
+# ./bin on first run). Run once after clone, and whenever you add new utility
+# classes to templates/Python/JS. The Dockerfile runs this too.
+css:
+	./scripts/build_css.sh
+
+# Rebuild on every change during local development.
+css-watch:
+	WATCH=1 ./scripts/build_css.sh
+
+# Compile CSS, then start the dev server.
+run: css
+	$(PYTHON) manage.py migrate
+	$(PYTHON) manage.py runserver $(RUNSERVER_ARGS)
 '''
