@@ -33,16 +33,16 @@ def _get_copy_mode_deps() -> list[str]:
 
     # Hard-coded fallback (matches pyproject.toml)
     return [
-        "Django==6.0.3",
-        "django-allauth[socialaccount]==65.15.0",
-        "django-ninja==1.6.2",
-        "whitenoise==6.12.0",
-        "psycopg2-binary==2.9.11",
-        "python-decouple==3.8",
-        "Pillow==12.1.1",
-        "gunicorn==25.3.0",
-        "redis==7.4.0",
-        "django-redis==6.0.0",
+        "Django>=6.0.4,<6.1",
+        "django-allauth[socialaccount]>=65.15.0,<66",
+        "django-ninja>=1.6.2,<2",
+        "whitenoise>=6.12.0,<7",
+        "psycopg2-binary>=2.9.11,<3",
+        "python-decouple>=3.8,<4",
+        "Pillow>=12.3,<13",
+        "gunicorn>=25.3.0,<26",
+        "redis>=7.4.0,<8",
+        "django-redis>=6.0.0,<7",
     ]
 
 

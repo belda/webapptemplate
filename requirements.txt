@@ -8,4 +8,3 @@ Pillow==12.3.0
 gunicorn==25.3.0
 redis==7.4.0
 django-redis==6.0.0
-pysqlite==0.6.0
