@@ -1,6 +1,7 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
+from django.utils.http import url_has_allowed_host_and_scheme
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -10,6 +11,13 @@ class AccountAdapter(DefaultAccountAdapter):
         token = request.session.get("pending_invite_token")
         if token:
             return f"/workspaces/accept-invite/{token}/"
+        # The ?next= param is lost when the user confirms via the email link
+        # (a fresh request with no query string), so it's stashed in the session
+        # at signup and replayed here — this covers the email-confirmation hop
+        # too, since allauth's confirmation redirect falls through to this method.
+        next_url = request.session.pop("post_auth_next", None)
+        if next_url:
+            return next_url
         return settings.LOGIN_REDIRECT_URL
 
     def get_signup_redirect_url(self, request):
@@ -21,7 +29,19 @@ class AccountAdapter(DefaultAccountAdapter):
             user.username = user.email.split("@")[0]
         if commit:
             user.save()
+        self._stash_post_auth_next(request)
         return user
+
+    def _stash_post_auth_next(self, request):
+        next_url = request.POST.get("next") or request.GET.get("next")
+        if not next_url or next_url == settings.LOGIN_REDIRECT_URL:
+            return
+        if url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            request.session["post_auth_next"] = next_url
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):

@@ -24,6 +24,16 @@ if os.environ.get("DATABASE_URL") or os.environ.get("DB_HOST"):
         }
     }
 
+# Serve static files straight from STATICFILES_DIRS. The production manifest
+# storage resolves every {% static %} through staticfiles.json, so without this
+# any template referencing a static asset raises "Missing staticfiles manifest
+# entry" until `collectstatic` has run — which breaks `runserver` on a fresh
+# clone and every test that renders such a template.
+STORAGES = {
+    **STORAGES,
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Skip email verification entirely in development so you can log in immediately

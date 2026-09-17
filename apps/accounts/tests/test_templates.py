@@ -18,8 +18,8 @@ class AuthTemplateInheritanceTest(TestCase):
         self.assertIn("hx-headers", content, "base.html body hx-headers missing")
         # CSRF meta tag added in base.html
         self.assertIn('name="csrf-token"', content, "base.html csrf-token meta tag missing")
-        # Tailwind CDN loaded in base.html
-        self.assertIn("cdn.tailwindcss.com", content, "Tailwind CDN missing — base.html not rendered")
+        # Precompiled Tailwind stylesheet linked in base.html (built by `make css`)
+        self.assertIn("css/app.css", content, "Compiled stylesheet missing — base.html not rendered")
         # Font Awesome loaded in base.html
         self.assertIn("fontawesome", content, "Font Awesome CDN missing — base.html not rendered")
 
@@ -78,3 +78,31 @@ class AppNameInTemplatesTest(TestCase):
         response = self.client.get(reverse("account_signup"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "TestApp")
+
+
+@override_settings(REQUIRE_EMAIL_VERIFICATION=False)
+class BaseTemplateFrontendGuardsTest(TestCase):
+    """Guards for three base.html fixes whose breakage is invisible server-side.
+
+    Each of these was a real, hard-to-diagnose browser bug; nothing else in the
+    suite would notice if the line were dropped in a future edit.
+    """
+
+    def _base_html(self):
+        return self.client.get(reverse("account_login")).content.decode()
+
+    def test_htmx_settle_is_disabled(self):
+        """htmx's settle phase re-applies server class/style over Alpine's
+        x-show, popping hidden elements open after any swap."""
+        self.assertIn('"attributesToSettle": []', self._base_html())
+
+    def test_x_cloak_rule_is_not_tailwind_processed(self):
+        """x-cloak must land in a plain <style>, not a compiled/async block, or
+        Safari renders every cloaked element before the rule exists."""
+        content = self._base_html()
+        self.assertIn("[x-cloak] { display: none !important; }", content)
+        self.assertNotIn('type="text/tailwindcss"', content)
+
+    def test_viewport_resizes_layout_for_the_keyboard(self):
+        """Without this the on-screen keyboard hides the bottom of long forms."""
+        self.assertIn("interactive-widget=resizes-content", self._base_html())

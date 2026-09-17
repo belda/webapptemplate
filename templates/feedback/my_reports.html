@@ -1,0 +1,125 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}My wishes / bugs{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">My wishes / bugs</h1>
+      <p class="mt-1 text-sm text-gray-600">
+        Bugs and wishes you've sent us, and where each one stands.
+        {% if open_count %}<span class="text-gray-500">{{ open_count }} still open.</span>{% endif %}
+      </p>
+    </div>
+    <button type="button"
+            hx-get="{% url 'feedback:bug_report_modal' %}"
+            hx-target="#modal-container"
+            hx-swap="innerHTML"
+            hx-disinherit="hx-push-url hx-target"
+            class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-500">
+      <i class="fa-solid fa-bug"></i>New bug / wish
+    </button>
+  </div>
+
+  {% if not reports %}
+    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+      <div class="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+        <i class="fa-solid fa-inbox text-lg"></i>
+      </div>
+      <p class="text-sm font-medium text-gray-900">Nothing here yet</p>
+      <p class="mt-1 text-sm text-gray-500">When you send a bug or wish, it'll show up here with its progress.</p>
+    </div>
+  {% else %}
+    <ul role="list" class="space-y-4">
+      {% for report in reports %}
+      <li class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="mb-1 flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+              <span>{{ report.get_kind_display }}</span>
+              <span class="text-gray-300">·</span>
+              <span>{{ report.get_severity_display }}</span>
+            </div>
+            <h2 class="truncate text-sm font-semibold text-gray-900">{{ report.title }}</h2>
+          </div>
+          {% if report.status == 'resolved' %}
+            <span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Resolved</span>
+          {% elif report.status == 'in_progress' %}
+            <span class="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">In progress</span>
+          {% elif report.status == 'triaged' %}
+            <span class="shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">Triaged</span>
+          {% elif report.status == 'wont_fix' %}
+            <span class="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Won't fix</span>
+          {% elif report.status == 'duplicate' %}
+            <span class="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Duplicate</span>
+          {% else %}
+            <span class="shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">New</span>
+          {% endif %}
+        </div>
+
+        {% if report.description %}
+          <p class="mt-2 line-clamp-2 text-sm text-gray-500">{{ report.description }}</p>
+        {% endif %}
+
+        {% if report.on_tracker %}
+          <div class="mt-4">
+            <div class="flex gap-1">
+              {% for step in report.tracker_steps %}
+                <span class="h-1.5 flex-1 rounded-full {% if step.done %}bg-primary-500{% else %}bg-gray-200{% endif %}"></span>
+              {% endfor %}
+            </div>
+            <div class="mt-1.5 flex text-[10px] uppercase tracking-wide">
+              {% for step in report.tracker_steps %}
+                <span class="flex-1 {% if forloop.first %}text-left{% elif forloop.last %}text-right{% else %}text-center{% endif %} {% if step.current %}font-semibold text-primary-600{% else %}text-gray-400{% endif %}">{{ step.label }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <p class="mt-3 text-xs text-gray-500">
+            {% if report.status == 'wont_fix' %}
+              We've decided not to change this for now.
+            {% else %}
+              Merged into an existing report we're already tracking.
+            {% endif %}
+          </p>
+        {% endif %}
+
+        {% with messages=report.updates.all %}
+          {% for update in messages %}
+            {% if update.message %}
+              <div class="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                <div class="mb-1 flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                  <i class="fa-solid fa-reply text-gray-300"></i>
+                  <span>Reply from the team</span>
+                  <span class="text-gray-300">·</span>
+                  <span>{{ update.created_at|date:"j M Y" }}</span>
+                </div>
+                <p class="whitespace-pre-line text-sm text-gray-700">{{ update.message }}</p>
+                {% if update.attachment %}
+                  <a href="{{ update.attachment.url }}" class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-500">
+                    <i class="fa-solid fa-paperclip"></i>Attachment
+                  </a>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endwith %}
+
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
+          <span>Sent {{ report.created_at|date:"j M Y" }}</span>
+          {% if report.page_url %}
+            <span class="text-gray-300">·</span>
+            <a href="{{ report.page_url }}" class="truncate text-primary-600 hover:text-primary-500">Open the page</a>
+          {% endif %}
+        </div>
+
+      </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+</div>
+{% endblock %}

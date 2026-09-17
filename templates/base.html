@@ -1,46 +1,43 @@
+{% load asset_tags %}
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-50">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% comment %}
+  interactive-widget=resizes-content is load-bearing on mobile. The app shell is
+  a 100%-height flex column with overflow-hidden and one inner overflow-y-auto
+  scroller (layouts/app.html), so it is sized off the LAYOUT viewport. Under the
+  default resizes-visual, opening the on-screen keyboard shrinks only the visual
+  viewport — the shell keeps its full height and its scroller runs on behind the
+  keyboard, so the bottom of a long form (its Save/Cancel buttons) cannot be
+  reached. resizes-content shrinks the layout viewport too, so the existing
+  h-full / min-h-0 / overflow-y-auto chain resolves against what is visible.
+  {% endcomment %}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
   <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
   <meta name="csrf-token" content="{{ csrf_token }}">
-  <script src="https://cdn.tailwindcss.com"></script>
+  {% comment %}
+  attributesToSettle must stay empty. htmx's settle phase re-applies the
+  server-rendered class/style attributes to any swapped-in element whose id also
+  existed in the old content — which lands ~200ms after Alpine has initialised
+  that element and wiped the inline `display: none` x-show had just set. Every
+  x-show/:class element with a stable id then flashes open and stays open after
+  any htmx swap. Restore this only if you adopt htmx CSS settle transitions.
+  {% endcomment %}
+  <meta name="htmx-config" content='{"attributesToSettle": []}'>
+  <style>
+    /* Plain CSS — must apply immediately, independent of any async stylesheet
+       compile. Registering x-cloak here (rather than in a Tailwind-processed
+       block) is what Alpine's docs require: otherwise the rule only exists once
+       the compile pass finishes, and browsers whose script timing lets Alpine
+       run first (Safari) flash every x-cloak element visible at once. */
+    [x-cloak] { display: none !important; }
+  </style>
+  {% comment %} Compiled by `make css` from static/src/app.css — see tailwind.config.js. {% endcomment %}
+  <link rel="stylesheet" href="{% asset 'css/app.css' %}">
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
-  <script>
-    // Configure Tailwind
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
-          }
-        }
-      }
-    }
-  </script>
-  <style type="text/tailwindcss">
-    [x-cloak] { display: none !important; }
-    .input {
-      @apply block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300
-             placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6;
-    }
-    .btn-primary {
-      @apply inline-flex justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold
-             text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2
-             focus-visible:outline-offset-2 focus-visible:outline-primary-600;
-    }
-    .btn-secondary {
-      @apply inline-flex justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold
-             text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50;
-    }
-    .btn-danger {
-      @apply inline-flex justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold
-             text-white shadow-sm hover:bg-red-500;
-    }
-  </style>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>

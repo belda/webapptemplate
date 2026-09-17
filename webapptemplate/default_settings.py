@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     "webapptemplate.apps.workspaces",
     "webapptemplate.apps.api",
     "webapptemplate.apps.dashboard",
+    "webapptemplate.apps.deploy",
+    "webapptemplate.apps.feedback",
     # Third-party
     "allauth",
     "allauth.account",

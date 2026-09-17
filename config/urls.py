@@ -10,6 +10,7 @@ urlpatterns = [
     path("accounts/", include("webapptemplate.apps.accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("workspaces/", include("webapptemplate.apps.workspaces.urls")),
+    path("feedback/", include("webapptemplate.apps.feedback.urls")),
     path("", include("webapptemplate.apps.dashboard.urls")),
 ]
 

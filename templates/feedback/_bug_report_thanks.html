@@ -1,0 +1,27 @@
+<div id="bug-report-modal"
+     x-data="{ close() { document.getElementById('bug-report-modal')?.remove(); } }"
+     x-init="setTimeout(() => { {% if reload_page %}window.location.reload(){% else %}close(){% endif %} }, {% if reload_page %}1200{% else %}2500{% endif %})"
+     @keydown.escape.window="close()"
+     x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+  <div class="absolute inset-0 bg-gray-900/60" @click="close()"></div>
+
+  <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center z-10">
+    <div class="mx-auto h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+      <i class="fa-solid fa-check text-emerald-600"></i>
+    </div>
+    <h2 class="text-base font-semibold text-gray-900">Thanks for the report</h2>
+    <p class="text-sm text-gray-500 mt-1">We'll take a look as soon as we can.</p>
+    <div class="mt-4 flex items-center justify-center gap-2">
+      <a href="{% url 'feedback:my_reports' %}"
+         class="px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-500">
+        My wishes / bugs
+      </a>
+      <button type="button" @click="close()"
+              class="px-3 py-1.5 text-sm font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800">
+        Close
+      </button>
+    </div>
+  </div>
+</div>

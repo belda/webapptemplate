@@ -214,11 +214,25 @@ def copy_project_files(dest: Path, ctx: dict):
         )
         print(f"  + {dest / 'templates'}/ (copied base templates)")
 
-    # 3. Copy webapptemplate framework utils (app_config, registry, context_processors)
+    # 3. Copy webapptemplate framework utils.
+    # This local package SHADOWS the installed one, so every module the
+    # scaffolded config/ imports has to be here — a missing one is an
+    # ImportError at startup, not a fallback to the installed copy.
     wt_dest = dest / "webapptemplate"
     wt_dest.mkdir(parents=True, exist_ok=True)
-    for fname in ("__init__.py", "app_config.py", "registry.py", "context_processors.py"):
+    for fname in (
+        "__init__.py",
+        "app_config.py",
+        "registry.py",
+        "context_processors.py",
+        "settings_panels.py",
+        "default_settings.py",
+        "urls.py",
+    ):
         shutil.copy2(pkg_dir / fname, wt_dest / fname)
+        text = (wt_dest / fname).read_text()
+        if "webapptemplate.apps." in text:
+            (wt_dest / fname).write_text(text.replace("webapptemplate.apps.", "apps."))
         print(f"  + {wt_dest / fname} (copied)")
     (wt_dest / "contrib").mkdir(exist_ok=True)
     (wt_dest / "contrib" / "__init__.py").write_text("")
@@ -251,6 +265,15 @@ def scaffold_project(dest: Path, ctx: dict):
 
     # static/ placeholder
     write_file(dest / "static" / ".gitkeep", "")
+
+    # Tailwind build pipeline. base.html links static/css/app.css, so a new
+    # project is unstyled until `make css` has run once — the README says so.
+    write_file(dest / "tailwind.config.js", tmpl.render_tailwind_config(ctx))
+    write_file(dest / "static" / "src" / "app.css", tmpl.render_css_source(ctx))
+    write_file(dest / "Makefile", tmpl.render_makefile(ctx))
+    build_css = dest / "scripts" / "build_css.sh"
+    write_file(build_css, tmpl.render_build_css_sh(ctx))
+    build_css.chmod(0o755)
 
     # .env files
     write_file(dest / ".env", tmpl.render_env(ctx, example=False))

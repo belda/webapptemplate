@@ -12,7 +12,10 @@ api = NinjaAPI(
     title=f"{_app_name} API",
     version="1.0.0",
     description=f"REST API for {_app_name}",
-    auth=[django_auth, APIKeyAuth()],
+    # APIKeyAuth first: an explicit Bearer token must win over a session cookie
+    # that happens to be on the same request, otherwise the key's workspace
+    # pinning is bypassed whenever the caller is also logged into the browser.
+    auth=[APIKeyAuth(), django_auth],
 )
 
 api.add_router("/workspaces/", workspaces_router)
